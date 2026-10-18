@@ -16,6 +16,16 @@ import {
 } from '../types/index.ts';
 
 const DB_STORAGE_KEY = 'cfit_sqlite_db_v2';
+const DEFAULT_CLOUD_ROOM = 'cfit_sync_chn25csc095';
+const CLOUD_ROOM_STORAGE_KEY = 'cfit_cloud_room_key';
+
+const DEVICE_ID = typeof window !== 'undefined'
+  ? (sessionStorage.getItem('cfit_device_id') || (() => {
+      const id = 'dev_' + Math.random().toString(36).substring(2, 9);
+      try { sessionStorage.setItem('cfit_device_id', id); } catch {}
+      return id;
+    })())
+  : 'dev_server';
 
 class GymDatabase {
   private SQL: any = null;
@@ -24,6 +34,9 @@ class GymDatabase {
   private initPromise: Promise<void> | null = null;
   private subscribers: Set<() => void> = new Set();
   private syncChannel: BroadcastChannel | null = null;
+  private eventSource: EventSource | null = null;
+  private isCloudConnected: boolean = false;
+  private cloudPushTimer: any = null;
 
   constructor() {
     this.init();
@@ -45,6 +58,15 @@ class GymDatabase {
           this.reloadFromStorage();
         }
       });
+
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryRoom = urlParams.get('room');
+        if (queryRoom) {
+          const clean = queryRoom.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+          if (clean) localStorage.setItem(CLOUD_ROOM_STORAGE_KEY, clean);
+        }
+      } catch {}
 
       this.startAutoSync();
     }
@@ -76,6 +98,161 @@ class GymDatabase {
     }
   }
 
+  public getCloudRoomKey(): string {
+    if (typeof window === 'undefined') return DEFAULT_CLOUD_ROOM;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRoom = urlParams.get('sync') || urlParams.get('room');
+      if (urlRoom) {
+        const clean = urlRoom.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        if (clean) {
+          localStorage.setItem(CLOUD_ROOM_STORAGE_KEY, clean);
+          return clean;
+        }
+      }
+    } catch {}
+    return localStorage.getItem(CLOUD_ROOM_STORAGE_KEY) || DEFAULT_CLOUD_ROOM;
+  }
+
+  public setCloudRoomKey(key: string) {
+    if (typeof window === 'undefined') return;
+    const cleanKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || DEFAULT_CLOUD_ROOM;
+    localStorage.setItem(CLOUD_ROOM_STORAGE_KEY, cleanKey);
+    this.setupCloudSyncListener();
+    this.pollCloudRelay();
+  }
+
+  public setupCloudSyncListener() {
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
+    if (this.eventSource) {
+      try { this.eventSource.close(); } catch {}
+      this.eventSource = null;
+    }
+
+    const room = this.getCloudRoomKey();
+    const sseUrl = `https://ntfy.sh/${room}/sse`;
+
+    try {
+      this.eventSource = new EventSource(sseUrl);
+      this.eventSource.onopen = () => {
+        this.isCloudConnected = true;
+      };
+      this.eventSource.onmessage = async (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          let payload: any = null;
+
+          // 1. If ntfy uploaded a large file attachment, fetch it
+          if (parsed && parsed.attachment && parsed.attachment.url) {
+            try {
+              const fileRes = await fetch(parsed.attachment.url);
+              if (fileRes.ok) {
+                payload = await fileRes.json();
+              }
+            } catch {}
+          }
+
+          // 2. Otherwise parse inline JSON message
+          if (!payload && parsed && parsed.message) {
+            try {
+              payload = JSON.parse(parsed.message);
+            } catch {}
+          }
+
+          if (payload) {
+            // Ignore messages sent by this same device
+            if (payload.senderId && payload.senderId === DEVICE_ID) return;
+            if (payload.data) {
+              await this.importCompleteDatabaseJson({ data: payload.data }, false);
+              this.lastCloudSyncedAt = new Date().toISOString();
+            }
+          }
+        } catch (err) {
+          // Ignore parse errors safely
+        }
+      };
+      this.eventSource.onerror = () => {
+        this.isCloudConnected = false;
+      };
+    } catch (e) {
+      console.warn('[CLOUD SYNC] SSE connection warning:', e);
+    }
+  }
+
+  public async pollCloudRelay(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    const room = this.getCloudRoomKey();
+    try {
+      const res = await fetch(`https://ntfy.sh/${room}/json?poll=1`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return false;
+      const text = await res.text();
+      const lines = text.trim().split('\n');
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        try {
+          const item = JSON.parse(line);
+          let payload: any = null;
+
+          if (item && item.attachment && item.attachment.url) {
+            try {
+              const fileRes = await fetch(item.attachment.url);
+              if (fileRes.ok) {
+                payload = await fileRes.json();
+              }
+            } catch {}
+          }
+
+          if (!payload && item && item.message) {
+            try {
+              payload = JSON.parse(item.message);
+            } catch {}
+          }
+
+          if (payload) {
+            if (payload.senderId && payload.senderId === DEVICE_ID) continue;
+            if (payload.data) {
+              await this.importCompleteDatabaseJson({ data: payload.data }, false);
+              this.lastCloudSyncedAt = new Date().toISOString();
+              return true;
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+    return false;
+  }
+
+  public pushToCloudRelay() {
+    if (typeof window === 'undefined') return;
+    if (this.cloudPushTimer) clearTimeout(this.cloudPushTimer);
+    this.cloudPushTimer = setTimeout(async () => {
+      const room = this.getCloudRoomKey();
+      try {
+        const jsonStr = await this.exportCompleteDatabaseJson();
+        const parsed = JSON.parse(jsonStr);
+        const bodyObj = {
+          senderId: DEVICE_ID,
+          updatedAt: new Date().toISOString(),
+          data: parsed.data,
+        };
+        const payloadStr = JSON.stringify(bodyObj);
+        await fetch(`https://ntfy.sh/${room}`, {
+          method: 'POST',
+          headers: {
+            'Title': 'CFIT_DB_UPDATE',
+            'Tags': 'database,sync',
+            'Filename': 'cfit_db.json'
+          },
+          body: payloadStr,
+        });
+        this.lastCloudSyncedAt = new Date().toISOString();
+      } catch (e) {
+        // Fail silently
+      }
+    }, 400);
+  }
+
   private pushTimer: any = null;
   public pushToServer() {
     if (typeof window === 'undefined') return;
@@ -101,14 +278,19 @@ class GymDatabase {
     try {
       const res = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
       if (!res.ok) return false;
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) return false; // Prevent parsing HTML as JSON
       const health = await res.json();
       if (health.updatedAt && health.updatedAt !== this.lastServerTimestamp) {
         const syncRes = await fetch('/api/sync', { signal: AbortSignal.timeout(4000) });
         if (syncRes.ok) {
-          const serverData = await syncRes.json();
-          this.lastServerTimestamp = health.updatedAt;
-          await this.importCompleteDatabaseJson({ data: serverData });
-          return true;
+          const syncType = syncRes.headers.get('content-type') || '';
+          if (syncType.includes('application/json')) {
+            const serverData = await syncRes.json();
+            this.lastServerTimestamp = health.updatedAt;
+            await this.importCompleteDatabaseJson({ data: serverData.data || serverData }, false);
+            return true;
+          }
         }
       }
     } catch {
@@ -119,17 +301,24 @@ class GymDatabase {
 
   public startAutoSync() {
     if (typeof window === 'undefined') return;
-    // Initial fetch from server
-    setTimeout(() => this.pullFromServer(), 800);
-
-    // Periodic background sync every 5 seconds
-    setInterval(() => {
+    // Initial fetch from server & cloud relay
+    setTimeout(() => {
       this.pullFromServer();
-    }, 5000);
+      this.pollCloudRelay();
+      this.setupCloudSyncListener();
+    }, 600);
+
+    // Periodic background sync every 8 seconds when active
+    setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      this.pullFromServer();
+      this.pollCloudRelay();
+    }, 8000);
 
     // Immediate sync when returning to tab/device
     window.addEventListener('focus', () => {
       this.pullFromServer();
+      this.pollCloudRelay();
     });
   }
 
@@ -142,8 +331,11 @@ class GymDatabase {
         // Ignore
       }
     }
-    // Push changes to server so other devices see them
-    this.pushToServer();
+    // Push changes to both central server and cloud relay (for Vercel & mobile)
+    if (broadcast) {
+      this.pushToServer();
+      this.pushToCloudRelay();
+    }
 
     for (const cb of this.subscribers) {
       try {
@@ -1200,6 +1392,24 @@ class GymDatabase {
   // ==================== DATABASE CONNECTIVITY & JAVA BACKEND SYNC ====================
   public async checkBackendStatus(serverUrl: string = 'http://localhost:8080/api'): Promise<{ connected: boolean; latencyMs?: number; message?: string }> {
     const cleanUrl = serverUrl.replace(/\/+$/, '');
+
+    // Check if on HTTPS (e.g. Vercel deployment)
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    if (isHttps && cleanUrl.startsWith('http://localhost')) {
+      return {
+        connected: false,
+        message: 'On Vercel (HTTPS), web browsers block plain http://localhost requests. Use the Cloud Sync above to sync Laptop & Phone in real-time without needing any ports open!'
+      };
+    }
+
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile && cleanUrl.includes('localhost')) {
+      return {
+        connected: false,
+        message: "On mobile, 'localhost' points to your phone, not your laptop. To connect to your laptop's Java backend, enter your laptop's Wi-Fi IP (e.g. http://192.168.1.X:8080/api) or use Cloud Sync."
+      };
+    }
+
     const startTime = performance.now();
     try {
       const res = await fetch(`${cleanUrl}/diagnostics`, { method: 'GET', signal: AbortSignal.timeout(3000) });
@@ -1209,7 +1419,10 @@ class GymDatabase {
       }
       return { connected: false, message: `Server responded with HTTP ${res.status}` };
     } catch (err: any) {
-      return { connected: false, message: err?.message || 'Server unreachable at ' + serverUrl };
+      return {
+        connected: false,
+        message: `Java backend not detected at ${cleanUrl}. Start ./run_java.sh (option 3) on your laptop.`
+      };
     }
   }
 
@@ -1336,7 +1549,7 @@ class GymDatabase {
     return JSON.stringify(payload, null, 2);
   }
 
-  public async importCompleteDatabaseJson(jsonInput: string | object): Promise<{ success: boolean; message: string; counts?: Record<string, number> }> {
+  public async importCompleteDatabaseJson(jsonInput: string | object, shouldBroadcast: boolean = true): Promise<{ success: boolean; message: string; counts?: Record<string, number> }> {
     try {
       const parsed = typeof jsonInput === 'string' ? JSON.parse(jsonInput) : jsonInput;
       const data = parsed.data || parsed;
@@ -1402,8 +1615,56 @@ class GymDatabase {
         counts['trainers'] = tCount;
       }
 
+      // 4. Attendance
+      if (Array.isArray(data.attendance)) {
+        let aCount = 0;
+        for (const a of data.attendance) {
+          if (!a.member_id) continue;
+          const mId = String(a.member_id).replace(/'/g, "''");
+          const inTime = String(a.check_in_time || '').replace(/'/g, "''");
+          const outTime = a.check_out_time ? `'${String(a.check_out_time).replace(/'/g, "''")}'` : 'NULL';
+          const method = String(a.check_in_method || 'Reception Desk').replace(/'/g, "''");
+          db.run(`INSERT OR IGNORE INTO attendance (member_id, check_in_time, check_out_time, check_in_method)
+                  VALUES ('${mId}', '${inTime}', ${outTime}, '${method}')`);
+          aCount++;
+        }
+        counts['attendance'] = aCount;
+      }
+
+      // 5. Payments
+      if (Array.isArray(data.payments)) {
+        let pCount = 0;
+        for (const p of data.payments) {
+          if (!p.member_id) continue;
+          const mId = String(p.member_id).replace(/'/g, "''");
+          const desc = String(p.plan_description || 'Membership Renewal').replace(/'/g, "''");
+          const amt = Number(p.amount || 0);
+          const due = String(p.due_date || '').replace(/'/g, "''");
+          const pStat = String(p.payment_status || 'Paid').replace(/'/g, "''");
+          db.run(`INSERT OR IGNORE INTO payments (member_id, plan_description, amount, due_date, payment_status)
+                  VALUES ('${mId}', '${desc}', ${amt}, '${due}', '${pStat}')`);
+          pCount++;
+        }
+        counts['payments'] = pCount;
+      }
+
+      // 6. Classes
+      if (Array.isArray(data.classes)) {
+        for (const c of data.classes) {
+          if (!c.class_name) continue;
+          const name = String(c.class_name).replace(/'/g, "''");
+          const tId = c.trainer_id ? Number(c.trainer_id) : 1;
+          const loc = String(c.studio_location || 'Studio A').replace(/'/g, "''");
+          const st = String(c.start_time || '07:00 AM').replace(/'/g, "''");
+          const cap = Number(c.max_capacity || 20);
+          const booked = Number(c.booked_count || 0);
+          db.run(`INSERT OR IGNORE INTO classes (class_name, trainer_id, studio_location, start_time, max_capacity, booked_count)
+                  VALUES ('${name}', ${tId}, '${loc}', '${st}', ${cap}, ${booked})`);
+        }
+      }
+
       this.persist();
-      this.notify(true);
+      this.notify(shouldBroadcast);
 
       return {
         success: true,

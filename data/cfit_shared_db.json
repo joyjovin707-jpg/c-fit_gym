@@ -1,0 +1,314 @@
+{
+  "version": "2.0.0",
+  "updatedAt": "2026-10-18T13:55:33.967Z",
+  "members": [
+    {
+      "id": 1893,
+      "member_id": "GYM-0122",
+      "full_name": "adddsfdbb",
+      "plan_type": "Gold",
+      "trainer_id": null,
+      "join_date": "2026-09-26",
+      "expiry_date": "2027-09-26",
+      "status": "Active"
+    },
+    {
+      "id": 1894,
+      "member_id": "GYM-0519",
+      "full_name": "lnwifwwuih",
+      "plan_type": "Gold",
+      "trainer_id": 1,
+      "join_date": "2026-09-26",
+      "expiry_date": "2027-09-26",
+      "status": "Active"
+    },
+    {
+      "id": 1895,
+      "member_id": "GYM-0585",
+      "full_name": "HDGGGRD",
+      "plan_type": "Platinum",
+      "trainer_id": 1,
+      "join_date": "2026-09-27",
+      "expiry_date": "2027-09-27",
+      "status": "Active"
+    },
+    {
+      "id": 1896,
+      "member_id": "GYM-0071",
+      "full_name": "Priya Nair",
+      "plan_type": "Gold",
+      "trainer_id": 2,
+      "join_date": "2026-02-15",
+      "expiry_date": "2026-08-15",
+      "status": "Active"
+    },
+    {
+      "id": 1897,
+      "member_id": "GYM-0057",
+      "full_name": "Ananya Mohan",
+      "plan_type": "Silver",
+      "trainer_id": null,
+      "join_date": "2026-01-10",
+      "expiry_date": "2026-07-10",
+      "status": "Expiring"
+    },
+    {
+      "id": 1898,
+      "member_id": "GYM-0198",
+      "full_name": "Kavya Suresh",
+      "plan_type": "Platinum",
+      "trainer_id": 1,
+      "join_date": "2026-04-01",
+      "expiry_date": "2026-10-01",
+      "status": "Active"
+    },
+    {
+      "id": 1899,
+      "member_id": "GYM-0311",
+      "full_name": "Deepak Varma",
+      "plan_type": "Gold",
+      "trainer_id": 3,
+      "join_date": "2026-02-01",
+      "expiry_date": "2026-08-01",
+      "status": "Active"
+    },
+    {
+      "id": 1900,
+      "member_id": "GYM-0233",
+      "full_name": "Suresh Kumar",
+      "plan_type": "Silver",
+      "trainer_id": null,
+      "join_date": "2026-01-20",
+      "expiry_date": "2026-07-20",
+      "status": "Active"
+    },
+    {
+      "id": 1901,
+      "member_id": "GYM-0142",
+      "full_name": "Rahul Sharma",
+      "plan_type": "Platinum",
+      "trainer_id": null,
+      "join_date": "2026-10-18",
+      "expiry_date": "2027-04-16",
+      "status": "Active"
+    }
+  ],
+  "staff_users": [
+    {
+      "id": 1020,
+      "username": "adhil",
+      "password": "adhil123",
+      "full_name": "adhil",
+      "role": "Staff",
+      "email": "vsgwwbddbs@gmail.com",
+      "phone": "dafsbsv",
+      "shift": "Morning",
+      "status": "Active",
+      "can_manage_members": 1,
+      "can_process_payments": 1,
+      "can_manage_classes": 1,
+      "can_manage_trainers": 1,
+      "created_at": "2026-10-18 13:55:35"
+    },
+    {
+      "id": 1021,
+      "username": "admin",
+      "password": "admin123",
+      "full_name": "Gym Administrator",
+      "role": "Admin",
+      "email": "admin@cfitgym.com",
+      "phone": "+91 98470 11223",
+      "shift": "Full Day",
+      "status": "Active",
+      "can_manage_members": 1,
+      "can_process_payments": 1,
+      "can_manage_classes": 1,
+      "can_manage_trainers": 1,
+      "created_at": "2026-10-18 13:55:35"
+    },
+    {
+      "id": 1022,
+      "username": "staff",
+      "password": "staff123",
+      "full_name": "Reception Frontdesk",
+      "role": "Staff",
+      "email": "reception@cfitgym.com",
+      "phone": "+91 98470 44556",
+      "shift": "Morning",
+      "status": "Active",
+      "can_manage_members": 1,
+      "can_process_payments": 1,
+      "can_manage_classes": 1,
+      "can_manage_trainers": 1,
+      "created_at": "2026-10-18 13:55:35"
+    },
+    {
+      "id": 1023,
+      "username": "vishnu",
+      "password": "staff123",
+      "full_name": "Vishnu Nair",
+      "role": "Staff",
+      "email": "vishnu.nair@cfitgym.com",
+      "phone": "+91 94471 22334",
+      "shift": "Evening",
+      "status": "Active",
+      "can_manage_members": 1,
+      "can_process_payments": 1,
+      "can_manage_classes": 1,
+      "can_manage_trainers": 1,
+      "created_at": "2026-10-18 13:55:35"
+    },
+    {
+      "id": 1024,
+      "username": "anjali",
+      "password": "staff123",
+      "full_name": "Anjali Menon",
+      "role": "Staff",
+      "email": "anjali.m@cfitgym.com",
+      "phone": "+91 98950 33445",
+      "shift": "Morning",
+      "status": "Active",
+      "can_manage_members": 1,
+      "can_process_payments": 1,
+      "can_manage_classes": 1,
+      "can_manage_trainers": 1,
+      "created_at": "2026-10-18 13:55:35"
+    }
+  ],
+  "trainers": [
+    {
+      "id": 615,
+      "trainer_code": "TR-01",
+      "full_name": "Vikram Sethi",
+      "specialty": "Strength & Bodybuilding",
+      "rating": 4.9
+    },
+    {
+      "id": 616,
+      "trainer_code": "TR-02",
+      "full_name": "Sneha Pillai",
+      "specialty": "Cardio & HIIT Conditioning",
+      "rating": 4.8
+    },
+    {
+      "id": 617,
+      "trainer_code": "TR-03",
+      "full_name": "Mathew Thomas",
+      "specialty": "CrossFit & Olympic Lifting",
+      "rating": 4.7
+    }
+  ],
+  "attendance": [
+    {
+      "id": 27,
+      "member_id": "GYM-0122",
+      "check_in_time": "2026-09-26 18:21:23",
+      "check_out_time": "2026-09-26 18:32:57",
+      "check_in_method": "Reception Desk"
+    },
+    {
+      "id": 28,
+      "member_id": "GYM-0519",
+      "check_in_time": "2026-09-26 18:33:32",
+      "check_out_time": "2026-09-26 19:14:40",
+      "check_in_method": "Reception Desk"
+    }
+  ],
+  "payments": [
+    {
+      "id": 7,
+      "member_id": "GYM-0122",
+      "plan_description": "Gold — monthly",
+      "amount": 2500,
+      "due_date": "2026-09-26",
+      "payment_status": "Paid"
+    },
+    {
+      "id": 8,
+      "member_id": "GYM-0122",
+      "plan_description": "Gold — monthly",
+      "amount": 2500,
+      "due_date": "2026-09-26",
+      "payment_status": "Paid"
+    },
+    {
+      "id": 9,
+      "member_id": "GYM-0122",
+      "plan_description": "Gold — monthly",
+      "amount": 2800,
+      "due_date": "2026-09-26",
+      "payment_status": "Paid"
+    },
+    {
+      "id": 10,
+      "member_id": "GYM-0122",
+      "plan_description": "Gold — monthly",
+      "amount": 2500,
+      "due_date": "2026-09-26",
+      "payment_status": "Paid"
+    },
+    {
+      "id": 11,
+      "member_id": "GYM-0122",
+      "plan_description": "Gold — monthly",
+      "amount": 6666300,
+      "due_date": "2026-09-26",
+      "payment_status": "Paid"
+    },
+    {
+      "id": 12,
+      "member_id": "GYM-0519",
+      "plan_description": "Gold — monthly",
+      "amount": 662500,
+      "due_date": "2026-09-26",
+      "payment_status": "Paid"
+    }
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "class_name": "Strength circuit",
+      "trainer_id": 1,
+      "studio_location": "Studio A",
+      "start_time": "06:00 AM",
+      "max_capacity": 20,
+      "booked_count": 4
+    },
+    {
+      "id": 3,
+      "class_name": "Yoga flow",
+      "trainer_id": 3,
+      "studio_location": "Studio B",
+      "start_time": "09:30 AM",
+      "max_capacity": 20,
+      "booked_count": 2
+    },
+    {
+      "id": 4,
+      "class_name": "HIIT blast",
+      "trainer_id": 1,
+      "studio_location": "Studio A",
+      "start_time": "05:00 PM",
+      "max_capacity": 20,
+      "booked_count": 5
+    },
+    {
+      "id": 5,
+      "class_name": "Spin Twilight",
+      "trainer_id": 2,
+      "studio_location": "Studio C",
+      "start_time": "07:00 PM",
+      "max_capacity": 24,
+      "booked_count": 2
+    },
+    {
+      "id": 6,
+      "class_name": "ahaifhiafahhfuahiifhaihfahfiafuh9wfhwihuiuhas",
+      "trainer_id": 1,
+      "studio_location": "Outdoor Deck",
+      "start_time": "10:00 AM",
+      "max_capacity": 40,
+      "booked_count": 0
+    }
+  ]
+}
