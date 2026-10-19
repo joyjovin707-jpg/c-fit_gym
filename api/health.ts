@@ -1,4 +1,17 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+interface VercelRequest {
+  method?: string;
+  query?: Record<string, string | string[]>;
+  body?: any;
+  headers?: Record<string, string | string[] | undefined>;
+}
+
+interface VercelResponse {
+  status: (code: number) => VercelResponse;
+  json: (data: any) => VercelResponse;
+  send: (data: any) => VercelResponse;
+  end: () => VercelResponse;
+  setHeader: (name: string, value: string) => VercelResponse;
+}
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,8 +25,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 
   return res.status(200).json({
     status: 'ok',
-    mode: 'vercel-serverless',
     timestamp: new Date().toISOString(),
-    message: 'C-FIT Gym Vercel Serverless API is active'
+    cloud: 'vercel-edge'
   });
 }

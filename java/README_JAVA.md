@@ -96,5 +96,10 @@ java -cp java/bin com.cfit.server.GymHttpServer
 ---
 
 ## 5. Pre-configured Credentials
-- **System Admin**: Username `admin` | Password `admin123`
-- **Duty Staff**: Username `staff1` | Password `staff123`
+- **System Admin**: JOVIN — Username `admin` | Password `admin123`
+- **Staff Accounts**:
+  - `staff` | Password `staff123`
+  - `adhil` | Password `adhil123`
+  - `dnv` | Password `dnv123`
+  - `balu` | Password `balu123`
+  - `abhiram` | Password `abhiram123`

@@ -37,6 +37,7 @@ class GymDatabase {
   private eventSource: EventSource | null = null;
   private isCloudConnected: boolean = false;
   private cloudPushTimer: any = null;
+  public lastCloudSyncedAt: string | null = null;
 
   constructor() {
     this.init();
@@ -441,20 +442,9 @@ class GymDatabase {
                   created_at TEXT NOT NULL
                 );
               `);
-              const suCountRes = this.db?.exec('SELECT COUNT(*) FROM staff_users');
-              if (suCountRes && suCountRes.length > 0 && Number(suCountRes[0].values[0][0]) === 0) {
-                this.db?.run(`
-                  INSERT OR IGNORE INTO staff_users (id, username, password, full_name, role, email, phone, shift, status, can_manage_members, can_process_payments, can_manage_classes, can_manage_trainers, created_at)
-                  VALUES (1, 'admin', 'admin123', 'Gym Administrator', 'Admin', 'admin@cfitgym.com', '+91 98470 11223', 'Full Day', 'Active', 1, 1, 1, 1, '2025-01-01 00:00:00'),
-                         (2, 'staff', 'staff123', 'Reception Frontdesk', 'Staff', 'reception@cfitgym.com', '+91 98470 44556', 'Morning', 'Active', 1, 1, 1, 1, '2025-03-15 08:30:00'),
-                         (3, 'vishnu', 'staff123', 'Vishnu Nair', 'Staff', 'vishnu.nair@cfitgym.com', '+91 94471 22334', 'Evening', 'Active', 1, 1, 1, 1, '2025-06-20 14:00:00'),
-                         (4, 'anjali', 'staff123', 'Anjali Menon', 'Staff', 'anjali.m@cfitgym.com', '+91 98950 33445', 'Morning', 'Active', 1, 1, 1, 0, '2025-08-10 09:15:00');
-                `);
+              if (this.db) {
+                this.applyDefaultAccountsAndCleanDummies(this.db);
               }
-              this.db?.run(`
-                INSERT OR IGNORE INTO admin (username, password, role) VALUES ('admin', 'admin123', 'Admin access');
-                INSERT OR IGNORE INTO admin (username, password, role) VALUES ('staff', 'staff123', 'Staff access');
-              `);
               this.persist();
             } catch {
               // Ignore migration error
@@ -463,12 +453,14 @@ class GymDatabase {
             console.warn('Failed to parse saved database, creating fresh one:', e);
             const freshDb = new SQL.Database();
             this.executeSqlSchema(freshDb, generateSeedSql(new Date()));
+            this.applyDefaultAccountsAndCleanDummies(freshDb);
             this.db = freshDb;
             this.persist();
           }
         } else {
           const freshDb = new SQL.Database();
           this.executeSqlSchema(freshDb, generateSeedSql(new Date()));
+          this.applyDefaultAccountsAndCleanDummies(freshDb);
           this.db = freshDb;
           this.persist();
         }
@@ -481,6 +473,165 @@ class GymDatabase {
     })();
 
     return this.initPromise;
+  }
+
+  private applyDefaultAccountsAndCleanDummies(db: Database) {
+    try {
+      // 1. Ensure tables exist
+      db.run(`
+        CREATE TABLE IF NOT EXISTS admin (
+          username TEXT PRIMARY KEY,
+          password TEXT NOT NULL,
+          role TEXT DEFAULT 'Admin access'
+        );
+        CREATE TABLE IF NOT EXISTS staff_users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          full_name TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'Staff',
+          email TEXT,
+          phone TEXT,
+          shift TEXT DEFAULT 'Morning',
+          status TEXT DEFAULT 'Active',
+          can_manage_members INTEGER DEFAULT 1,
+          can_process_payments INTEGER DEFAULT 1,
+          can_manage_classes INTEGER DEFAULT 1,
+          can_manage_trainers INTEGER DEFAULT 1,
+          created_at TEXT NOT NULL
+        );
+      `);
+
+      // 2. Insert or update Administrator JOVIN (username: admin, pass: admin123)
+      db.run(`
+        INSERT OR IGNORE INTO staff_users (id, username, password, full_name, role, email, phone, shift, status, can_manage_members, can_process_payments, can_manage_classes, can_manage_trainers, created_at)
+        VALUES (1, 'admin', 'admin123', 'JOVIN', 'Admin', 'admin@cfitgym.com', '+91 98470 11223', 'Full Day', 'Active', 1, 1, 1, 1, '2025-01-01 00:00:00');
+        UPDATE staff_users SET full_name = 'JOVIN', password = 'admin123', role = 'Admin' WHERE username = 'admin';
+      `);
+
+      // 3. Staff members:
+      // 0. staff(staff, staff123)
+      // 1. adhil(adhil, adhil123)
+      // 2. DNV(dnv, dnv123)
+      // 3. balu(balu, balu123)
+      // 4. abhiram(abhiram, abhiram123)
+      db.run(`
+        INSERT OR IGNORE INTO staff_users (id, username, password, full_name, role, email, phone, shift, status, can_manage_members, can_process_payments, can_manage_classes, can_manage_trainers, created_at)
+        VALUES (2, 'staff', 'staff123', 'staff', 'Staff', 'staff@cfitgym.com', '+91 98470 44556', 'Morning', 'Active', 1, 1, 1, 1, '2025-03-15 08:30:00'),
+               (3, 'adhil', 'adhil123', 'adhil', 'Staff', 'adhil@cfitgym.com', '+91 94471 22334', 'Morning', 'Active', 1, 1, 1, 1, '2025-06-20 14:00:00'),
+               (4, 'dnv', 'dnv123', 'DNV', 'Staff', 'dnv@cfitgym.com', '+91 98950 33445', 'Evening', 'Active', 1, 1, 1, 1, '2025-08-10 09:15:00'),
+               (5, 'balu', 'balu123', 'balu', 'Staff', 'balu@cfitgym.com', '+91 98472 55667', 'Evening', 'Active', 1, 1, 1, 1, '2025-09-01 10:00:00'),
+               (6, 'abhiram', 'abhiram123', 'abhiram', 'Staff', 'abhiram@cfitgym.com', '+91 98473 66778', 'Full Day', 'Active', 1, 1, 1, 1, '2025-09-15 11:30:00');
+        
+        UPDATE staff_users SET full_name = 'staff', password = 'staff123' WHERE username = 'staff';
+        UPDATE staff_users SET full_name = 'adhil', password = 'adhil123' WHERE username = 'adhil';
+        UPDATE staff_users SET full_name = 'DNV', password = 'dnv123' WHERE username = 'dnv';
+        UPDATE staff_users SET full_name = 'balu', password = 'balu123' WHERE username = 'balu';
+        UPDATE staff_users SET full_name = 'abhiram', password = 'abhiram123' WHERE username = 'abhiram';
+      `);
+
+      // 4. Remove dummy staff users
+      db.run(`
+        DELETE FROM staff_users WHERE LOWER(username) NOT IN ('admin', 'staff', 'adhil', 'dnv', 'balu', 'abhiram');
+      `);
+
+      // 5. Update admin credentials table
+      db.run(`
+        INSERT OR REPLACE INTO admin (username, password, role) VALUES
+        ('admin', 'admin123', 'Admin access'),
+        ('staff', 'staff123', 'Staff access'),
+        ('adhil', 'adhil123', 'Staff access'),
+        ('dnv', 'dnv123', 'Staff access'),
+        ('balu', 'balu123', 'Staff access'),
+        ('abhiram', 'abhiram123', 'Staff access');
+        DELETE FROM admin WHERE LOWER(username) NOT IN ('admin', 'staff', 'adhil', 'dnv', 'balu', 'abhiram');
+      `);
+
+      // 6. Ensure default members: 1. neeraj, 2. abin, 3. sadi, 4. vinod, 5. farzan
+      db.run(`
+        INSERT OR IGNORE INTO members (id, member_id, full_name, plan_type, trainer_id, join_date, expiry_date, status)
+        VALUES (1, 'GYM-0101', 'neeraj', 'Gold', 1, '2025-11-15', '2026-11-15', 'Active'),
+               (2, 'GYM-0102', 'abin', 'Platinum', 2, '2026-01-10', '2027-01-10', 'Active'),
+               (3, 'GYM-0103', 'sadi', 'Silver', 3, '2026-03-01', '2026-09-01', 'Active'),
+               (4, 'GYM-0104', 'vinod', 'Gold', 1, '2025-12-05', '2026-12-05', 'Active'),
+               (5, 'GYM-0105', 'farzan', 'Platinum', 2, '2026-04-12', '2027-04-12', 'Active');
+
+        UPDATE members SET full_name = 'neeraj' WHERE member_id = 'GYM-0101';
+        UPDATE members SET full_name = 'abin' WHERE member_id = 'GYM-0102';
+        UPDATE members SET full_name = 'sadi' WHERE member_id = 'GYM-0103';
+        UPDATE members SET full_name = 'vinod' WHERE member_id = 'GYM-0104';
+        UPDATE members SET full_name = 'farzan' WHERE member_id = 'GYM-0105';
+      `);
+
+      // 7. Remove dummy members from previous seed data and restrict to the 5 requested members
+      db.run(`
+        DELETE FROM members WHERE member_id NOT IN ('GYM-0101', 'GYM-0102', 'GYM-0103', 'GYM-0104', 'GYM-0105');
+      `);
+
+      // 8. Clean up orphaned attendance, payments, class bookings
+      db.run(`
+        DELETE FROM attendance WHERE member_id NOT IN ('GYM-0101', 'GYM-0102', 'GYM-0103', 'GYM-0104', 'GYM-0105');
+        DELETE FROM payments WHERE member_id NOT IN ('GYM-0101', 'GYM-0102', 'GYM-0103', 'GYM-0104', 'GYM-0105');
+        DELETE FROM class_bookings WHERE member_id NOT IN ('GYM-0101', 'GYM-0102', 'GYM-0103', 'GYM-0104', 'GYM-0105');
+      `);
+
+      // 9. Enforce exactly 5 clean attendance records (one per member), purging any duplicates
+      const attCheck = db.exec('SELECT COUNT(*) FROM attendance');
+      const attTotal = (attCheck && attCheck.length > 0) ? Number(attCheck[0].values[0][0]) : 0;
+      if (attTotal !== 5) {
+        db.run(`DELETE FROM attendance;`);
+        db.run(`
+          INSERT INTO attendance (id, member_id, check_in_time, check_out_time, check_in_method)
+          VALUES (1, 'GYM-0101', '2026-10-19 06:15:00', '2026-10-19 07:30:00', 'Reception Desk'),
+                 (2, 'GYM-0102', '2026-10-19 07:05:00', NULL, 'Reception Desk'),
+                 (3, 'GYM-0103', '2026-10-18 17:30:00', '2026-10-18 18:45:00', 'Reception Desk'),
+                 (4, 'GYM-0104', '2026-10-19 08:15:00', '2026-10-19 09:20:00', 'Reception Desk'),
+                 (5, 'GYM-0105', '2026-10-19 09:00:00', NULL, 'Reception Desk');
+        `);
+      }
+
+      // 10. Enforce exactly 5 clean payments (one per member), purging any duplicates
+      const payCheck = db.exec('SELECT COUNT(*) FROM payments');
+      const payTotal = (payCheck && payCheck.length > 0) ? Number(payCheck[0].values[0][0]) : 0;
+      if (payTotal !== 5) {
+        db.run(`DELETE FROM payments;`);
+        db.run(`
+          INSERT INTO payments (id, member_id, plan_description, amount, due_date, payment_status)
+          VALUES (1, 'GYM-0101', 'Gold — monthly', 2500, '2026-10-15', 'Paid'),
+                 (2, 'GYM-0102', 'Platinum — annual', 28000, '2026-10-01', 'Paid'),
+                 (3, 'GYM-0103', 'Silver — monthly', 1800, '2026-10-10', 'Paid'),
+                 (4, 'GYM-0104', 'Gold — 6 month', 14000, '2026-10-25', 'Paid'),
+                 (5, 'GYM-0105', 'Platinum — monthly', 3500, '2026-10-24', 'Pending');
+        `);
+      }
+
+      // 11. Enforce exactly 5 clean classes and class bookings, purging any duplicates
+      const clsCheck = db.exec('SELECT COUNT(*) FROM classes');
+      const clsTotal = (clsCheck && clsCheck.length > 0) ? Number(clsCheck[0].values[0][0]) : 0;
+      if (clsTotal !== 5) {
+        db.run(`DELETE FROM class_bookings;`);
+        db.run(`DELETE FROM classes;`);
+        db.run(`
+          INSERT INTO classes (id, class_name, trainer_id, studio_location, start_time, max_capacity, booked_count)
+          VALUES (1, 'CrossFit Power Hour', 1, 'Studio A (Ground)', '06:30 AM', 15, 1),
+                 (2, 'HIIT Conditioning Blitz', 2, 'Studio B (Level 1)', '07:30 AM', 20, 1),
+                 (3, 'Power Yoga Flow', 4, 'Studio C (Level 2)', '08:30 AM', 12, 1),
+                 (4, 'Strength & Hypertrophy', 3, 'Studio A (Ground)', '05:30 PM', 15, 1),
+                 (5, 'Spin & Cardio Blast', 2, 'Studio B (Level 1)', '06:30 PM', 18, 1);
+        `);
+        db.run(`
+          INSERT INTO class_bookings (id, class_id, member_id, booked_at)
+          VALUES (1, 1, 'GYM-0101', '2026-10-18 10:00:00'),
+                 (2, 2, 'GYM-0102', '2026-10-18 11:00:00'),
+                 (3, 3, 'GYM-0103', '2026-10-18 14:00:00'),
+                 (4, 4, 'GYM-0104', '2026-10-19 08:00:00'),
+                 (5, 5, 'GYM-0105', '2026-10-19 08:30:00');
+        `);
+      }
+      db.run(`UPDATE classes SET booked_count = (SELECT COUNT(*) FROM class_bookings WHERE class_id = classes.id);`);
+    } catch (e) {
+      console.warn('Error in applyDefaultAccountsAndCleanDummies:', e);
+    }
   }
 
   private executeSqlSchema(db: Database, schema: string) {
@@ -528,6 +679,7 @@ class GymDatabase {
     const SQL = await this.loadSqlEngine();
     const freshDb = new SQL.Database();
     this.executeSqlSchema(freshDb, generateSeedSql(new Date()));
+    this.applyDefaultAccountsAndCleanDummies(freshDb);
     this.db = freshDb;
     this.persist();
     this.notify();
@@ -1147,10 +1299,19 @@ class GymDatabase {
         const u = String(adminCheck[0].values[0][0]);
         const r = String(adminCheck[0].values[0][1]);
         const isAdmin = u === 'admin' || r.toLowerCase().includes('admin');
+        let resolvedName = 'Staff Member';
+        if (isAdmin) resolvedName = 'JOVIN';
+        else if (u === 'staff') resolvedName = 'staff';
+        else if (u === 'adhil') resolvedName = 'adhil';
+        else if (u === 'dnv') resolvedName = 'DNV';
+        else if (u === 'balu') resolvedName = 'balu';
+        else if (u === 'abhiram') resolvedName = 'abhiram';
+        else resolvedName = u;
+
         return {
           id: 999,
           username: u,
-          full_name: isAdmin ? 'Gym Administrator' : 'Staff Member',
+          full_name: resolvedName,
           role: isAdmin ? 'Admin' : 'Staff',
           email: `${u}@cfitgym.com`,
           phone: '+91 98470 00000',
@@ -1329,12 +1490,12 @@ class GymDatabase {
     }
     const res = db.exec('SELECT username, role FROM admin LIMIT 1');
     if (res.length === 0) {
-      return { username: 'admin', role: 'Admin access', full_name: 'Gym Administrator' };
+      return { username: 'admin', role: 'Admin access', full_name: 'JOVIN' };
     }
     return {
       username: String(res[0].values[0][0]),
       role: String(res[0].values[0][1]),
-      full_name: String(res[0].values[0][0]) === 'admin' ? 'Gym Administrator' : 'Staff Member',
+      full_name: String(res[0].values[0][0]) === 'admin' ? 'JOVIN' : 'staff',
     };
   }
 
@@ -1616,16 +1777,19 @@ class GymDatabase {
       }
 
       // 4. Attendance
+      // 4. Attendance
       if (Array.isArray(data.attendance)) {
+        db.run('DELETE FROM attendance');
         let aCount = 0;
         for (const a of data.attendance) {
           if (!a.member_id) continue;
+          const idVal = a.id ? Number(a.id) : (aCount + 1);
           const mId = String(a.member_id).replace(/'/g, "''");
           const inTime = String(a.check_in_time || '').replace(/'/g, "''");
           const outTime = a.check_out_time ? `'${String(a.check_out_time).replace(/'/g, "''")}'` : 'NULL';
           const method = String(a.check_in_method || 'Reception Desk').replace(/'/g, "''");
-          db.run(`INSERT OR IGNORE INTO attendance (member_id, check_in_time, check_out_time, check_in_method)
-                  VALUES ('${mId}', '${inTime}', ${outTime}, '${method}')`);
+          db.run(`INSERT OR REPLACE INTO attendance (id, member_id, check_in_time, check_out_time, check_in_method)
+                  VALUES (${idVal}, '${mId}', '${inTime}', ${outTime}, '${method}')`);
           aCount++;
         }
         counts['attendance'] = aCount;
@@ -1633,16 +1797,18 @@ class GymDatabase {
 
       // 5. Payments
       if (Array.isArray(data.payments)) {
+        db.run('DELETE FROM payments');
         let pCount = 0;
         for (const p of data.payments) {
           if (!p.member_id) continue;
+          const idVal = p.id ? Number(p.id) : (pCount + 1);
           const mId = String(p.member_id).replace(/'/g, "''");
           const desc = String(p.plan_description || 'Membership Renewal').replace(/'/g, "''");
           const amt = Number(p.amount || 0);
           const due = String(p.due_date || '').replace(/'/g, "''");
           const pStat = String(p.payment_status || 'Paid').replace(/'/g, "''");
-          db.run(`INSERT OR IGNORE INTO payments (member_id, plan_description, amount, due_date, payment_status)
-                  VALUES ('${mId}', '${desc}', ${amt}, '${due}', '${pStat}')`);
+          db.run(`INSERT OR REPLACE INTO payments (id, member_id, plan_description, amount, due_date, payment_status)
+                  VALUES (${idVal}, '${mId}', '${desc}', ${amt}, '${due}', '${pStat}')`);
           pCount++;
         }
         counts['payments'] = pCount;
@@ -1650,17 +1816,36 @@ class GymDatabase {
 
       // 6. Classes
       if (Array.isArray(data.classes)) {
+        db.run('DELETE FROM classes');
+        let cCount = 0;
         for (const c of data.classes) {
           if (!c.class_name) continue;
+          const idVal = c.id ? Number(c.id) : (cCount + 1);
           const name = String(c.class_name).replace(/'/g, "''");
           const tId = c.trainer_id ? Number(c.trainer_id) : 1;
           const loc = String(c.studio_location || 'Studio A').replace(/'/g, "''");
           const st = String(c.start_time || '07:00 AM').replace(/'/g, "''");
           const cap = Number(c.max_capacity || 20);
           const booked = Number(c.booked_count || 0);
-          db.run(`INSERT OR IGNORE INTO classes (class_name, trainer_id, studio_location, start_time, max_capacity, booked_count)
-                  VALUES ('${name}', ${tId}, '${loc}', '${st}', ${cap}, ${booked})`);
+          db.run(`INSERT OR REPLACE INTO classes (id, class_name, trainer_id, studio_location, start_time, max_capacity, booked_count)
+                  VALUES (${idVal}, '${name}', ${tId}, '${loc}', '${st}', ${cap}, ${booked})`);
+          cCount++;
         }
+        counts['classes'] = cCount;
+      }
+
+      // 7. Class Bookings
+      if (Array.isArray(data.class_bookings)) {
+        db.run('DELETE FROM class_bookings');
+        let cbCount = 0;
+        for (const cb of data.class_bookings) {
+          if (!cb.class_id || !cb.member_id) continue;
+          const idVal = cb.id ? Number(cb.id) : (cbCount + 1);
+          db.run(`INSERT OR REPLACE INTO class_bookings (id, class_id, member_id, booked_at)
+                  VALUES (${idVal}, ${Number(cb.class_id)}, '${String(cb.member_id).replace(/'/g, "''")}', '${String(cb.booked_at || new Date().toISOString()).replace(/'/g, "''")}')`);
+          cbCount++;
+        }
+        counts['class_bookings'] = cbCount;
       }
 
       this.persist();
@@ -1681,10 +1866,10 @@ class GymDatabase {
 
   public async exportCompleteDatabaseSql(): Promise<string> {
     const db = await this.getDb();
-    const tables = ['staff_users', 'trainers', 'members', 'attendance', 'payments', 'classes', 'class_bookings'];
+    const tables = ['staff_users', 'trainers', 'members', 'attendance', 'payments', 'classes', 'class_bookings', 'admin'];
     let sqlDump = `-- C-FIT Gym Database Export (SQLite / ANSI SQL Dump)\n`;
     sqlDump += `-- Generated: ${new Date().toISOString()}\n`;
-    sqlDump += `-- System: C-FIT KTU S3 B.Tech CSE Project\n\n`;
+    sqlDump += `-- System: C-FIT Gym Management System\n\n`;
 
     for (const t of tables) {
       try {
@@ -1708,6 +1893,70 @@ class GymDatabase {
     }
 
     return sqlDump;
+  }
+
+  // ==================== TABLE INSPECTOR & VIEWER ====================
+  public async getTableRecords(tableName: string): Promise<{ columns: string[]; values: any[][] }> {
+    const db = await this.getDb();
+    const cleanTable = tableName.replace(/[^a-zA-Z0-9_]/g, '');
+    try {
+      const res = db.exec(`SELECT * FROM ${cleanTable}`);
+      if (res.length > 0) {
+        return { columns: res[0].columns, values: res[0].values };
+      }
+      const pragmaRes = db.exec(`PRAGMA table_info(${cleanTable})`);
+      if (pragmaRes.length > 0) {
+        const cols = pragmaRes[0].values.map((v) => String(v[1]));
+        return { columns: cols, values: [] };
+      }
+      return { columns: [], values: [] };
+    } catch (e: any) {
+      return { columns: ['Error'], values: [[e?.message || 'Table not found']] };
+    }
+  }
+
+  public async getTableListWithCounts(): Promise<{ table: string; count: number }[]> {
+    const db = await this.getDb();
+    const tables = ['members', 'staff_users', 'trainers', 'attendance', 'payments', 'classes', 'class_bookings', 'admin'];
+    const results: { table: string; count: number }[] = [];
+    for (const t of tables) {
+      try {
+        const res = db.exec(`SELECT COUNT(*) FROM ${t}`);
+        results.push({ table: t, count: (res[0]?.values[0]?.[0] as number) || 0 });
+      } catch {
+        results.push({ table: t, count: 0 });
+      }
+    }
+    return results;
+  }
+
+  public async executeCustomSql(sql: string): Promise<{ success: boolean; columns?: string[]; values?: any[][]; message?: string }> {
+    const db = await this.getDb();
+    try {
+      const trimmed = sql.trim();
+      if (trimmed.toUpperCase().startsWith('SELECT') || trimmed.toUpperCase().startsWith('PRAGMA')) {
+        const res = db.exec(trimmed);
+        if (res.length > 0) {
+          return { success: true, columns: res[0].columns, values: res[0].values };
+        }
+        return { success: true, columns: [], values: [], message: 'Query returned 0 rows.' };
+      } else {
+        db.run(trimmed);
+        this.persist();
+        this.notify();
+        return { success: true, message: 'Statement executed successfully.' };
+      }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'SQL Execution Error' };
+    }
+  }
+
+  public async resetToCleanFiveRecords(): Promise<{ success: boolean; message: string }> {
+    const db = await this.getDb();
+    this.applyDefaultAccountsAndCleanDummies(db);
+    this.persist();
+    this.notify();
+    return { success: true, message: 'Database reset to clean 5 members, 5 payments, 5 attendance, 5 classes and staff accounts.' };
   }
 }
 

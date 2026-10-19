@@ -126,6 +126,57 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+
+          {/* Quick Credential Fill */}
+          <div className="mt-6 pt-5 border-t border-[#2C3034]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9A9E9F] mb-2.5">
+              System Accounts (Click to Fill)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => { setUsername('admin'); setPassword('admin123'); setError(null); }}
+                className="px-2.5 py-1 text-xs rounded-lg bg-[#C9FF3D]/10 hover:bg-[#C9FF3D]/20 text-[#C9FF3D] border border-[#C9FF3D]/30 transition-colors font-medium cursor-pointer"
+              >
+                JOVIN (admin)
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('staff'); setPassword('staff123'); setError(null); }}
+                className="px-2.5 py-1 text-xs rounded-lg bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] transition-colors cursor-pointer"
+              >
+                staff
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('adhil'); setPassword('adhil123'); setError(null); }}
+                className="px-2.5 py-1 text-xs rounded-lg bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] transition-colors cursor-pointer"
+              >
+                adhil
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('dnv'); setPassword('dnv123'); setError(null); }}
+                className="px-2.5 py-1 text-xs rounded-lg bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] transition-colors cursor-pointer"
+              >
+                DNV
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('balu'); setPassword('balu123'); setError(null); }}
+                className="px-2.5 py-1 text-xs rounded-lg bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] transition-colors cursor-pointer"
+              >
+                balu
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername('abhiram'); setPassword('abhiram123'); setError(null); }}
+                className="px-2.5 py-1 text-xs rounded-lg bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] transition-colors cursor-pointer"
+              >
+                abhiram
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -122,6 +122,20 @@ export function App() {
       setClasses(classesList);
       setAdminUser(admin);
       setStaffList(staff);
+
+      setCurrentUser((prev) => {
+        if (!prev) return prev;
+        const matching = staff.find((s) => s.username.toLowerCase() === prev.username.toLowerCase());
+        if (matching) {
+          try {
+            localStorage.setItem('cfit_auth_user', JSON.stringify(matching));
+          } catch {
+            // Ignore
+          }
+          return matching;
+        }
+        return prev;
+      });
     } catch (err) {
       console.error('Failed to load data from SQLite:', err);
     } finally {
@@ -396,7 +410,7 @@ export function App() {
           currentUser={currentUser}
           onLogout={handleLogout}
           onSwitchUser={handleSwitchUser}
-          onOpenSync={() => setIsSyncModalOpen(true)}
+          onOpenSync={currentUser.role === 'Admin' ? () => setIsSyncModalOpen(true) : undefined}
         />
       </div>
 
@@ -417,7 +431,7 @@ export function App() {
               currentUser={currentUser}
               onLogout={handleLogout}
               onSwitchUser={handleSwitchUser}
-              onOpenSync={() => setIsSyncModalOpen(true)}
+              onOpenSync={currentUser.role === 'Admin' ? () => setIsSyncModalOpen(true) : undefined}
             />
           </div>
         </div>
@@ -475,7 +489,7 @@ export function App() {
                 setIsMemberModalOpen(true);
               }}
               onDeleteMember={handleDeleteMember}
-              onOpenSync={() => setIsSyncModalOpen(true)}
+              onOpenSync={currentUser.role === 'Admin' ? () => setIsSyncModalOpen(true) : undefined}
             />
           )}
 
@@ -535,7 +549,7 @@ export function App() {
                 onDeleteStaff={handleDeleteStaff}
                 onToggleStatus={handleToggleStaffStatus}
                 onResetPassword={handleResetStaffPassword}
-                onOpenSync={() => setIsSyncModalOpen(true)}
+                onOpenSync={currentUser.role === 'Admin' ? () => setIsSyncModalOpen(true) : undefined}
               />
             ) : (
               <div className="bg-[#1A1D21] border border-[#FF5F45]/30 rounded-xl p-8 text-center space-y-3">
@@ -557,7 +571,7 @@ export function App() {
             <SettingsScreen
               onNotify={notify}
               currentUser={currentUser}
-              onOpenSync={() => setIsSyncModalOpen(true)}
+              onOpenSync={currentUser.role === 'Admin' ? () => setIsSyncModalOpen(true) : undefined}
             />
           )}
         </main>
@@ -606,11 +620,13 @@ export function App() {
         trainers={trainers}
       />
 
-      <DatabaseSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        onNotify={notify}
-      />
+      {currentUser.role === 'Admin' && (
+        <DatabaseSyncModal
+          isOpen={isSyncModalOpen}
+          onClose={() => setIsSyncModalOpen(false)}
+          onNotify={notify}
+        />
+      )}
     </div>
   );
 }

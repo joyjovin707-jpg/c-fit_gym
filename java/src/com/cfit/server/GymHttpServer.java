@@ -149,6 +149,8 @@ public class GymHttpServer {
             sb.append("]");
             sendResponse(exchange, 200, sb.toString());
         }
+    }
+
     static class StaffHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {

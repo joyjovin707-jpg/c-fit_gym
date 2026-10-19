@@ -5,16 +5,15 @@ import {
   RefreshCw,
   Download,
   Upload,
-  CheckCircle2,
-  AlertCircle,
-  Copy,
-  Server,
+  Search,
+  Code,
   Layers,
-  ArrowDownToLine,
-  FileCode2,
-  Check,
+  Sparkles,
   Smartphone,
-  Share2
+  Server,
+  Check,
+  AlertCircle,
+  Play
 } from 'lucide-react';
 import { gymDb } from '../../db/database.ts';
 
@@ -29,94 +28,85 @@ export const DatabaseSyncModal: React.FC<DatabaseSyncModalProps> = ({
   onClose,
   onNotify
 }) => {
-  const [serverUrl, setServerUrl] = useState('http://localhost:8080/api');
-  const [isChecking, setIsChecking] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [backendStatus, setBackendStatus] = useState<{ connected: boolean; latencyMs?: number; message?: string } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [tableCounts, setTableCounts] = useState<{ table: string; count: number }[]>([]);
+  // Tabs: 'tables' (Database List) or 'sync' (Cloud / Java Sync tools)
+  const [activeTab, setActiveTab] = useState<'tables' | 'sync'>('tables');
 
-  // Cloud Sync Room (for Vercel cross-device sync)
+  // Database tables list & active selected table
+  const [tableCounts, setTableCounts] = useState<{ table: string; count: number }[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string>('members');
+  const [tableData, setTableData] = useState<{ columns: string[]; values: any[][] }>({ columns: [], values: [] });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingTable, setIsLoadingTable] = useState(false);
+
+  // SQL Console
+  const [showSqlConsole, setShowSqlConsole] = useState(false);
+  const [customSql, setCustomSql] = useState('SELECT * FROM members LIMIT 10;');
+  const [sqlResult, setSqlResult] = useState<{ columns?: string[]; values?: any[][]; message?: string; error?: string } | null>(null);
+
+  // Sync settings
+  const [serverUrl, setServerUrl] = useState('http://localhost:8080/api');
+  const [isCheckingJava, setIsCheckingJava] = useState(false);
+  const [isSyncingJava, setIsSyncingJava] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<{ connected: boolean; latencyMs?: number; message?: string } | null>(null);
   const [cloudRoom, setCloudRoom] = useState(gymDb.getCloudRoomKey());
   const [copiedLink, setCopiedLink] = useState(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      loadStats();
+      loadTableList();
+      loadActiveTable(selectedTable);
       setCloudRoom(gymDb.getCloudRoomKey());
     }
   }, [isOpen]);
 
-  const loadStats = async () => {
+  useEffect(() => {
+    if (isOpen) {
+      loadActiveTable(selectedTable);
+    }
+  }, [selectedTable]);
+
+  const loadTableList = async () => {
     try {
-      const db = await gymDb.getDb();
-      const tables = ['members', 'staff_users', 'trainers', 'attendance', 'payments', 'classes'];
-      const counts: { table: string; count: number }[] = [];
-      for (const t of tables) {
-        try {
-          const res = db.exec(`SELECT COUNT(*) FROM ${t}`);
-          counts.push({ table: t, count: (res[0]?.values[0]?.[0] as number) || 0 });
-        } catch {
-          counts.push({ table: t, count: 0 });
-        }
-      }
+      const counts = await gymDb.getTableListWithCounts();
       setTableCounts(counts);
     } catch (e) {
       console.error(e);
     }
   };
 
-  const testBackend = async () => {
-    setIsChecking(true);
-    const res = await gymDb.checkBackendStatus(serverUrl);
-    setBackendStatus(res);
-    setIsChecking(false);
-  };
-
-  const handleSyncWithJava = async () => {
-    setIsSyncing(true);
-    const res = await gymDb.syncWithJavaBackend(serverUrl);
-    setIsSyncing(false);
-    onNotify(res.message);
-    if (res.success) {
-      loadStats();
-    }
-  };
-
-  const handleSaveRoom = () => {
-    gymDb.setCloudRoomKey(cloudRoom);
-    onNotify('Cloud Sync Room updated to: ' + cloudRoom);
-  };
-
-  const handleForceCloudPush = () => {
-    gymDb.pushToCloudRelay();
-    onNotify('Current database broadcast to Cloud Relay (Phone will sync automatically)!');
-  };
-
-  const handleForceCloudPull = async () => {
-    setIsCloudSyncing(true);
-    const success = await gymDb.pollCloudRelay();
-    setIsCloudSyncing(false);
-    if (success) {
-      onNotify('Pulled and synchronized latest records from Cloud Relay!');
-      loadStats();
-    } else {
-      onNotify('Checked Cloud Relay. Database is up to date.');
-    }
-  };
-
-  const handleCopyPairingLink = async () => {
+  const loadActiveTable = async (tableName: string) => {
+    setIsLoadingTable(true);
     try {
-      const origin = window.location.origin;
-      const pathname = window.location.pathname;
-      const pairingUrl = `${origin}${pathname}?sync=${encodeURIComponent(cloudRoom)}`;
-      await navigator.clipboard.writeText(pairingUrl);
-      setCopiedLink(true);
-      onNotify('Copied pairing link! Send this link to your phone (WhatsApp/Email) to open in sync.');
-      setTimeout(() => setCopiedLink(false), 3500);
-    } catch {
-      onNotify(`Sync link: ${window.location.origin}?sync=${cloudRoom}`);
+      const data = await gymDb.getTableRecords(tableName);
+      setTableData(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoadingTable(false);
+    }
+  };
+
+  const handleResetClean5 = async () => {
+    const res = await gymDb.resetToCleanFiveRecords();
+    onNotify(res.message);
+    await loadTableList();
+    await loadActiveTable(selectedTable);
+  };
+
+  const handleExecuteSql = async () => {
+    if (!customSql.trim()) return;
+    try {
+      const res = await gymDb.executeCustomSql(customSql);
+      if (res.success) {
+        setSqlResult({ columns: res.columns, values: res.values, message: res.message });
+        loadTableList();
+        loadActiveTable(selectedTable);
+      } else {
+        setSqlResult({ error: res.message });
+      }
+    } catch (err: any) {
+      setSqlResult({ error: err?.message || 'SQL execution failed.' });
     }
   };
 
@@ -127,12 +117,12 @@ export const DatabaseSyncModal: React.FC<DatabaseSyncModalProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cfit_database_sync_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `cfit_database_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      onNotify('Database exported as JSON file successfully!');
+      onNotify('Database JSON exported successfully!');
     } catch (e: any) {
       onNotify('Export failed: ' + e?.message);
     }
@@ -156,18 +146,6 @@ export const DatabaseSyncModal: React.FC<DatabaseSyncModalProps> = ({
     }
   };
 
-  const handleCopyJson = async () => {
-    try {
-      const jsonStr = await gymDb.exportCompleteDatabaseJson();
-      await navigator.clipboard.writeText(jsonStr);
-      setCopied(true);
-      onNotify('Full database snapshot copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      onNotify('Could not copy to clipboard.');
-    }
-  };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -177,12 +155,9 @@ export const DatabaseSyncModal: React.FC<DatabaseSyncModalProps> = ({
       try {
         const text = event.target?.result as string;
         const result = await gymDb.importCompleteDatabaseJson(text);
-        if (result.success) {
-          onNotify(result.message);
-          loadStats();
-        } else {
-          onNotify(result.message);
-        }
+        onNotify(result.message);
+        loadTableList();
+        loadActiveTable(selectedTable);
       } catch (err: any) {
         onNotify('Import error: ' + (err?.message || 'Invalid format'));
       }
@@ -191,335 +166,525 @@ export const DatabaseSyncModal: React.FC<DatabaseSyncModalProps> = ({
     e.target.value = '';
   };
 
+  const testBackend = async () => {
+    setIsCheckingJava(true);
+    const res = await gymDb.checkBackendStatus(serverUrl);
+    setBackendStatus(res);
+    setIsCheckingJava(false);
+  };
+
+  const handleSyncWithJava = async () => {
+    setIsSyncingJava(true);
+    const res = await gymDb.syncWithJavaBackend(serverUrl);
+    setIsSyncingJava(false);
+    onNotify(res.message);
+    if (res.success) {
+      loadTableList();
+      loadActiveTable(selectedTable);
+    }
+  };
+
+  const handleForceCloudPush = () => {
+    gymDb.pushToCloudRelay();
+    onNotify('Current database broadcast to Cloud Relay!');
+  };
+
+  const handleForceCloudPull = async () => {
+    setIsCloudSyncing(true);
+    const success = await gymDb.pollCloudRelay();
+    setIsCloudSyncing(false);
+    if (success) {
+      onNotify('Synchronized latest records from Cloud Relay!');
+      loadTableList();
+      loadActiveTable(selectedTable);
+    } else {
+      onNotify('Checked Cloud Relay. Database is already up to date.');
+    }
+  };
+
+  const handleCopyPairingLink = async () => {
+    try {
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      const pairingUrl = `${origin}${pathname}?sync=${encodeURIComponent(cloudRoom)}`;
+      await navigator.clipboard.writeText(pairingUrl);
+      setCopiedLink(true);
+      onNotify('Pairing link copied to clipboard!');
+      setTimeout(() => setCopiedLink(false), 3000);
+    } catch {
+      onNotify(`Sync link: ${window.location.origin}?sync=${cloudRoom}`);
+    }
+  };
+
   if (!isOpen) return null;
 
+  // Filter table data by search query
+  const filteredValues = tableData.values.filter((row) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return row.some((val) => String(val ?? '').toLowerCase().includes(query));
+  });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#1A1D21] border border-[#2C3034] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#1A1D21] border border-[#2C3034] rounded-2xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-[#2C3034] flex items-center justify-between bg-[#151719]">
+        <div className="p-4 sm:p-5 border-b border-[#2C3034] flex items-center justify-between bg-[#151719] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#C9FF3D]/10 border border-[#C9FF3D]/30 flex items-center justify-center text-[#C9FF3D]">
+            <div className="w-10 h-10 rounded-xl bg-[#C9FF3D]/10 border border-[#C9FF3D]/30 flex items-center justify-center text-[#C9FF3D] shadow-sm">
               <Database className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#EDEEEA] flex items-center gap-2">
-                Database Connection & Synchronization Hub
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#8FB82A]/20 text-[#C9FF3D] border border-[#C9FF3D]/30 font-mono">
-                  LIVE
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-[#EDEEEA]">
+                  Database Explorer & Tables
+                </h2>
+                <span className="flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full bg-[#8FB82A]/20 text-[#C9FF3D] border border-[#C9FF3D]/30 font-mono font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9FF3D] animate-pulse" />
+                  DB: CONNECTED
                 </span>
-              </h2>
-              <p className="text-xs text-[#9A9E9F]">
-                Synchronize members, staff, attendance, and billing between Web, Java Desktop, and all tabs
+                <span className="text-[10px] px-2 py-0.5 rounded bg-[#212528] text-[#9A9E9F] border border-[#2C3034] font-mono">
+                  SQLite 3.40 (sql.js)
+                </span>
+              </div>
+              <p className="text-xs text-[#9A9E9F] mt-0.5">
+                Inspect raw database tables, verify records, and manage live data collections
               </p>
             </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            {/* Main Tabs */}
+            <div className="hidden sm:flex bg-[#212528] p-0.5 rounded-lg border border-[#2C3034]">
+              <button
+                onClick={() => setActiveTab('tables')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'tables'
+                    ? 'bg-[#C9FF3D] text-[#101214] shadow-sm'
+                    : 'text-[#9A9E9F] hover:text-[#EDEEEA]'
+                }`}
+              >
+                Database Tables List
+              </button>
+              <button
+                onClick={() => setActiveTab('sync')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'sync'
+                    ? 'bg-[#C9FF3D] text-[#101214] shadow-sm'
+                    : 'text-[#9A9E9F] hover:text-[#EDEEEA]'
+                }`}
+              >
+                Cloud & Sync Tools
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-2 text-[#9A9E9F] hover:text-[#EDEEEA] hover:bg-[#212528] rounded-lg transition-colors cursor-pointer ml-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Tab Toggle */}
+        <div className="sm:hidden flex bg-[#151719] border-b border-[#2C3034] p-2 gap-1 shrink-0">
           <button
-            onClick={onClose}
-            className="p-2 text-[#9A9E9F] hover:text-[#EDEEEA] hover:bg-[#212528] rounded-lg transition-colors cursor-pointer"
+            onClick={() => setActiveTab('tables')}
+            className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${
+              activeTab === 'tables' ? 'bg-[#C9FF3D] text-[#101214]' : 'text-[#9A9E9F] bg-[#212528]'
+            }`}
           >
-            <X className="w-5 h-5" />
+            Database Tables List
+          </button>
+          <button
+            onClick={() => setActiveTab('sync')}
+            className={`flex-1 py-1.5 rounded text-xs font-semibold transition-all ${
+              activeTab === 'sync' ? 'bg-[#C9FF3D] text-[#101214]' : 'text-[#9A9E9F] bg-[#212528]'
+            }`}
+          >
+            Cloud / Java Sync
           </button>
         </div>
 
-        {/* Body Content */}
-        <div className="p-6 overflow-y-auto space-y-6">
-          {/* Card: Vercel Cloud Realtime Sync (Laptop ⇄ Mobile Phone) */}
-          <div className="bg-[#212528] border-2 border-[#C9FF3D]/50 rounded-xl p-4 space-y-3.5 shadow-lg relative overflow-hidden">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-[#C9FF3D]" />
-                <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider">
-                  Vercel Cross-Device Cloud Sync (Laptop ⇄ Mobile Phone)
-                </span>
-              </div>
-              <span className="flex items-center gap-1.5 text-xs text-[#C9FF3D] font-mono bg-[#C9FF3D]/15 px-2.5 py-0.5 rounded-full border border-[#C9FF3D]/40 font-bold">
-                <span className="w-2 h-2 rounded-full bg-[#C9FF3D] animate-pulse" />
-                Active on Vercel
+        {activeTab === 'tables' ? (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Table Selector Pills */}
+            <div className="px-4 sm:px-5 py-3 bg-[#17191C] border-b border-[#2C3034] overflow-x-auto shrink-0 flex items-center gap-2">
+              <span className="text-[11px] font-bold text-[#5D6164] uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-[#C9FF3D]" />
+                Tables:
               </span>
+              {tableCounts.map(({ table, count }) => {
+                const isSelected = selectedTable === table;
+                return (
+                  <button
+                    key={table}
+                    onClick={() => {
+                      setSelectedTable(table);
+                      setSearchQuery('');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-2 shrink-0 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#C9FF3D]/15 text-[#C9FF3D] border-[#C9FF3D]/50 font-bold'
+                        : 'bg-[#212528] text-[#9A9E9F] border-[#2C3034] hover:bg-[#2C3034] hover:text-[#EDEEEA]'
+                    }`}
+                  >
+                    <span>{table}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                        isSelected ? 'bg-[#C9FF3D] text-[#101214]' : 'bg-[#1A1D21] text-[#EDEEEA]'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <p className="text-xs text-[#EDEEEA] leading-relaxed">
-              <strong>Solves the Vercel mobile sync issue:</strong> When deployed on Vercel, browsers on your Laptop and Mobile Phone each have separate local storage. This Cloud Relay links them in real-time so changes on your laptop appear on your phone instantly!
-            </p>
+            {/* Sub-toolbar: Search + Action Buttons */}
+            <div className="p-3 sm:px-5 sm:py-2.5 bg-[#1A1D21] border-b border-[#2C3034] flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="relative flex-1 min-w-[200px] max-w-md">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#5D6164]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`Search records in '${selectedTable}'...`}
+                  className="w-full bg-[#212528] border border-[#2C3034] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#EDEEEA] placeholder:text-[#5D6164] focus:outline-none focus:border-[#C9FF3D]"
+                />
+              </div>
 
-            <div className="bg-[#1A1D21] p-3 rounded-lg border border-[#2C3034] space-y-3">
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="flex flex-col items-center shrink-0">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?sync=${cloudRoom}` : '')}`}
-                    alt="Scan with mobile"
-                    className="w-24 h-24 rounded-lg bg-white p-1 border border-[#2C3034] shadow-sm"
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => loadActiveTable(selectedTable)}
+                  disabled={isLoadingTable}
+                  className="px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Refresh table records"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingTable ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+
+                <button
+                  onClick={handleResetClean5}
+                  className="px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#C9FF3D] border border-[#C9FF3D]/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Purge duplicates and enforce clean 5 members, 5 payments, 5 attendance, and 5 classes"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Enforce 5 Records</span>
+                </button>
+
+                <button
+                  onClick={() => setShowSqlConsole(!showSqlConsole)}
+                  className={`px-2.5 py-1.5 border rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    showSqlConsole
+                      ? 'bg-[#C9FF3D]/20 text-[#C9FF3D] border-[#C9FF3D]'
+                      : 'bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border-[#2C3034]'
+                  }`}
+                  title="Toggle SQL Query Console"
+                >
+                  <Code className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">SQL Console</span>
+                </button>
+
+                <button
+                  onClick={handleExportJson}
+                  className="px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Export database as JSON"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#C9FF3D]" />
+                  <span className="hidden md:inline">JSON</span>
+                </button>
+
+                <button
+                  onClick={handleExportSql}
+                  className="px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Export database as SQL Dump"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#C9FF3D]" />
+                  <span className="hidden md:inline">SQL</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Optional SQL Console Panel */}
+            {showSqlConsole && (
+              <div className="p-3 sm:px-5 bg-[#151719] border-b border-[#2C3034] space-y-2 shrink-0 animate-fade-in">
+                <div className="flex items-center justify-between text-xs font-mono text-[#9A9E9F]">
+                  <span className="flex items-center gap-1.5 text-[#C9FF3D]">
+                    <Code className="w-3.5 h-3.5" /> SQLite SQL Console
+                  </span>
+                  <span>Direct SQLite database query execution</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customSql}
+                    onChange={(e) => setCustomSql(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleExecuteSql()}
+                    placeholder="SELECT * FROM members WHERE status = 'Active';"
+                    className="flex-1 bg-[#1A1D21] border border-[#2C3034] rounded-lg px-3 py-1.5 text-xs text-[#EDEEEA] font-mono focus:outline-none focus:border-[#C9FF3D]"
                   />
-                  <span className="text-[10px] text-[#9A9E9F] mt-1 font-mono">Scan on Phone</span>
+                  <button
+                    onClick={handleExecuteSql}
+                    className="px-3 py-1.5 bg-[#C9FF3D] hover:bg-[#B5EB34] text-[#101214] rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>Run Query</span>
+                  </button>
                 </div>
-
-                <div className="flex-1 w-full space-y-2">
-                  <div className="text-[10px] text-[#5D6164] uppercase font-mono">Sync Room Key (Shared across your Laptop & Mobile)</div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={cloudRoom}
-                      onChange={(e) => setCloudRoom(e.target.value)}
-                      className="flex-1 bg-[#151719] border border-[#2C3034] rounded px-2.5 py-1.5 text-xs font-mono text-[#C9FF3D] focus:outline-none focus:border-[#C9FF3D]"
-                    />
-                    <button
-                      onClick={handleSaveRoom}
-                      className="px-3 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded text-xs font-medium cursor-pointer"
-                    >
-                      Set Key
-                    </button>
+                {sqlResult && (
+                  <div
+                    className={`text-xs p-2 rounded border font-mono ${
+                      sqlResult.error
+                        ? 'bg-[#FF5F45]/15 border-[#FF5F45]/40 text-[#FF5F45]'
+                        : 'bg-[#212528] border-[#2C3034] text-[#C9FF3D]'
+                    }`}
+                  >
+                    {sqlResult.error || sqlResult.message || `Returned ${sqlResult.values?.length || 0} rows`}
                   </div>
+                )}
+              </div>
+            )}
 
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <button
-                      onClick={handleCopyPairingLink}
-                      className="px-3 py-1.5 bg-[#C9FF3D] hover:bg-[#B5EB34] text-[#101214] rounded text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                    >
-                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                      <span>{copiedLink ? 'Copied Link!' : 'Copy Mobile Link'}</span>
-                    </button>
-                    <button
-                      onClick={handleForceCloudPush}
-                      className="px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] rounded border border-[#2C3034] text-xs cursor-pointer flex items-center gap-1"
-                    >
-                      <span>Push Laptop Data</span>
-                    </button>
-                    <button
-                      onClick={handleForceCloudPull}
-                      disabled={isCloudSyncing}
-                      className="px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#C9FF3D] rounded border border-[#2C3034] text-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
-                      <span>Pull to Mobile</span>
-                    </button>
-                  </div>
+            {/* Data Table Display */}
+            <div className="flex-1 overflow-auto bg-[#1A1D21] p-3 sm:p-5">
+              {isLoadingTable ? (
+                <div className="py-20 flex flex-col items-center justify-center text-[#9A9E9F] gap-2">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#C9FF3D]" />
+                  <p className="text-xs">Loading records from SQLite database...</p>
                 </div>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-[#9A9E9F] bg-[#151719] p-2.5 rounded-lg border border-[#2C3034]">
-              <strong className="text-[#EDEEEA]">How to view & edit between Laptop and Mobile:</strong> Scan the QR code with your mobile camera or click <strong className="text-[#C9FF3D]">"Copy Mobile Link"</strong> and send it to your phone via WhatsApp/Email. Any updates on your laptop will automatically update your phone in real-time!
-            </div>
-          </div>
-
-          {/* Card 1: Local Engine & Multi-tab Status */}
-          <div className="bg-[#212528] border border-[#2C3034] rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#C9FF3D]" />
-                <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider">
-                  Active Database Engine
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#C9FF3D] animate-pulse" />
-                <span className="text-xs font-mono font-semibold text-[#C9FF3D]">
-                  Connected (In-Browser SQLite + Auto-Sync)
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
-              {tableCounts.map((tc) => (
-                <div key={tc.table} className="bg-[#1A1D21] p-2.5 rounded-lg border border-[#2C3034] text-center">
-                  <div className="text-[10px] text-[#5D6164] uppercase font-mono truncate">{tc.table}</div>
-                  <div className="text-sm font-bold font-mono text-[#EDEEEA] mt-0.5">{tc.count}</div>
+              ) : tableData.columns.length === 0 ? (
+                <div className="py-20 text-center text-xs text-[#5D6164]">
+                  Table is empty or not found.
                 </div>
-              ))}
-            </div>
-
-            <div className="text-[11px] text-[#9A9E9F] bg-[#1A1D21] p-2.5 rounded-lg border border-[#2C3034] flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#C9FF3D]" />
-                <span>Multi-tab Real-Time BroadcastChannel: <strong>Active</strong></span>
-              </span>
-              <span className="text-[#5D6164] font-mono text-[10px]">Zero delay</span>
-            </div>
-          </div>
-
-          {/* Card: MySQL JDBC & Cross-Device Central Database */}
-          <div className="bg-[#212528] border border-[#2C3034] rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-[#C9FF3D]" />
-                <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider">
-                  MySQL JDBC Connection (Java & Backend)
-                </span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#C9FF3D]/15 text-[#C9FF3D] border border-[#C9FF3D]/30">
-                JDBC: MySQL 8.0+
-              </span>
-            </div>
-
-            <p className="text-xs text-[#9A9E9F]">
-              Standard Java JDBC datasource configuration provided in <code className="text-[#C9FF3D] font-mono">java/resources/application.yml</code>:
-            </p>
-
-            <div className="bg-[#1A1D21] p-3 rounded-lg border border-[#2C3034] space-y-2 font-mono text-[11px]">
-              <div className="text-[#5D6164] flex items-center justify-between border-b border-[#2C3034] pb-1.5">
-                <span>JDBC DATASOURCE CONFIGURATION</span>
-                <span className="text-[#C9FF3D]">com.mysql.cj.jdbc.Driver</span>
-              </div>
-              <div className="text-[#EDEEEA] truncate">
-                <span className="text-[#5D6164]">URL: </span>
-                <span className="text-[#C9FF3D]">jdbc:mysql://${'{DB_HOST:localhost}'}:3306/cfit_db?createDatabaseIfNotExist=true&useSSL=false</span>
-              </div>
-              <div className="text-[#9A9E9F] flex gap-4">
-                <span>User: <strong className="text-[#EDEEEA]">root</strong></span>
-                <span>Pass: <strong className="text-[#EDEEEA]">root</strong></span>
-                <span>Status: <strong className="text-[#C9FF3D]">Ready for MySQL</strong></span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Java Backend Synchronization */}
-          <div className="bg-[#212528] border border-[#2C3034] rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-[#C9FF3D]" />
-                <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider">
-                  Sync with C-FIT Java Desktop / HTTP Server
-                </span>
-              </div>
-              {backendStatus?.connected ? (
-                <span className="flex items-center gap-1.5 text-xs text-[#C9FF3D] font-mono bg-[#C9FF3D]/10 px-2 py-0.5 rounded border border-[#C9FF3D]/30">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Java Online ({backendStatus.latencyMs}ms)
-                </span>
               ) : (
-                <span className="flex items-center gap-1.5 text-xs text-[#9A9E9F] font-mono bg-[#1A1D21] px-2 py-0.5 rounded border border-[#2C3034]">
-                  <AlertCircle className="w-3.5 h-3.5 text-[#FFAE42]" /> Optional Local Bridge
+                <div className="border border-[#2C3034] rounded-xl overflow-hidden shadow-sm bg-[#151719]">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-[#212528] border-b border-[#2C3034] text-[#9A9E9F]">
+                          <th className="py-2.5 px-3 w-10 text-[10px] font-mono text-[#5D6164] uppercase">
+                            #
+                          </th>
+                          {tableData.columns.map((col) => (
+                            <th
+                              key={col}
+                              className="py-2.5 px-3 font-semibold uppercase tracking-wider text-[11px] text-[#EDEEEA] whitespace-nowrap"
+                            >
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#2C3034] font-mono">
+                        {filteredValues.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={tableData.columns.length + 1}
+                              className="py-8 text-center text-xs text-[#5D6164]"
+                            >
+                              {searchQuery ? `No records matching "${searchQuery}"` : 'No records found.'}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredValues.map((row, rIdx) => (
+                            <tr
+                              key={rIdx}
+                              className="hover:bg-[#212528]/60 transition-colors group"
+                            >
+                              <td className="py-2 px-3 text-[#5D6164] text-[10px]">
+                                {rIdx + 1}
+                              </td>
+                              {row.map((val, cIdx) => {
+                                const colName = tableData.columns[cIdx]?.toLowerCase() || '';
+                                const isNull = val === null || val === undefined;
+                                const strVal = isNull ? 'NULL' : String(val);
+
+                                // Status highlight
+                                const isStatus =
+                                  colName.includes('status') ||
+                                  colName.includes('payment_status');
+                                const isIdCode =
+                                  colName === 'member_id' || colName === 'trainer_code';
+
+                                return (
+                                  <td
+                                    key={cIdx}
+                                    className="py-2 px-3 text-[#EDEEEA] whitespace-nowrap"
+                                  >
+                                    {isNull ? (
+                                      <span className="text-[#5D6164] italic">null</span>
+                                    ) : isStatus ? (
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-sans ${
+                                          strVal === 'Active' || strVal === 'Paid'
+                                            ? 'bg-[#8FB82A]/20 text-[#C9FF3D]'
+                                            : strVal === 'Pending' || strVal === 'Expiring'
+                                            ? 'bg-[#FFAE42]/20 text-[#FFAE42]'
+                                            : 'bg-[#FF5F45]/20 text-[#FF5F45]'
+                                        }`}
+                                      >
+                                        {strVal}
+                                      </span>
+                                    ) : isIdCode ? (
+                                      <span className="text-[#C9FF3D] font-bold">
+                                        {strVal}
+                                      </span>
+                                    ) : (
+                                      <span>{strVal}</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table Footer info */}
+                  <div className="p-2.5 bg-[#17191C] border-t border-[#2C3034] flex items-center justify-between text-[11px] text-[#5D6164] px-4">
+                    <span>
+                      Table: <strong className="text-[#EDEEEA]">{selectedTable}</strong> ({tableData.columns.length} columns)
+                    </span>
+                    <span>
+                      Showing {filteredValues.length} of {tableData.values.length} records
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Sync & Transfer Hub */
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-[#17191C]">
+            {/* Cloud Relay Card */}
+            <div className="bg-[#212528] border-2 border-[#C9FF3D]/40 rounded-xl p-4 sm:p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-5 h-5 text-[#C9FF3D]" />
+                  <span className="text-sm font-bold text-[#EDEEEA] uppercase tracking-wider">
+                    Vercel Cross-Device Cloud Sync
+                  </span>
+                </div>
+                <span className="flex items-center gap-1.5 text-xs text-[#C9FF3D] font-mono bg-[#C9FF3D]/15 px-2.5 py-0.5 rounded-full border border-[#C9FF3D]/40 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#C9FF3D] animate-pulse" />
+                  Active
                 </span>
+              </div>
+
+              <p className="text-xs text-[#9A9E9F]">
+                Changes made on your laptop sync automatically to your mobile phone via secure Cloud Relay pairing.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  onClick={handleForceCloudPush}
+                  className="px-3.5 py-2 bg-[#C9FF3D] hover:bg-[#B5EB34] text-[#101214] rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Push Current DB to Cloud</span>
+                </button>
+                <button
+                  onClick={handleForceCloudPull}
+                  disabled={isCloudSyncing}
+                  className="px-3.5 py-2 bg-[#1A1D21] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                  <span>Pull Latest from Cloud</span>
+                </button>
+                <button
+                  onClick={handleCopyPairingLink}
+                  className="px-3.5 py-2 bg-[#1A1D21] hover:bg-[#2C3034] text-[#C9FF3D] border border-[#2C3034] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
+                  <span>{copiedLink ? 'Copied Link!' : 'Copy Mobile Pairing Link'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Java Desktop Bridge Card */}
+            <div className="bg-[#212528] border border-[#2C3034] rounded-xl p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-[#C9FF3D]" />
+                  <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider">
+                    Optional Java Desktop / HTTP Bridge
+                  </span>
+                </div>
+                {backendStatus?.connected ? (
+                  <span className="text-xs text-[#C9FF3D] font-mono bg-[#C9FF3D]/10 px-2 py-0.5 rounded border border-[#C9FF3D]/30">
+                    Java Online ({backendStatus.latencyMs}ms)
+                  </span>
+                ) : (
+                  <span className="text-xs text-[#9A9E9F] font-mono bg-[#1A1D21] px-2 py-0.5 rounded border border-[#2C3034]">
+                    Standalone Web
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="http://localhost:8080/api"
+                  className="flex-1 bg-[#1A1D21] border border-[#2C3034] rounded-lg px-3 py-2 text-xs text-[#EDEEEA] font-mono focus:outline-none focus:border-[#C9FF3D]"
+                />
+                <button
+                  onClick={testBackend}
+                  disabled={isCheckingJava}
+                  className="px-3 py-2 bg-[#1A1D21] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isCheckingJava ? 'Testing...' : 'Test'}
+                </button>
+                <button
+                  onClick={handleSyncWithJava}
+                  disabled={isSyncingJava}
+                  className="px-4 py-2 bg-[#C9FF3D] hover:bg-[#B5EB34] text-[#101214] rounded-lg text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isSyncingJava ? 'Syncing...' : 'Sync with Java'}
+                </button>
+              </div>
+
+              {backendStatus && (
+                <div
+                  className={`text-xs p-2.5 rounded-lg border ${
+                    backendStatus.connected
+                      ? 'bg-[#C9FF3D]/10 border-[#C9FF3D]/30 text-[#C9FF3D]'
+                      : 'bg-[#212528] border-[#2C3034] text-[#EDEEEA]'
+                  }`}
+                >
+                  {backendStatus.message}
+                </div>
               )}
             </div>
 
-            <div className="text-[11px] text-[#9A9E9F] bg-[#1A1D21] p-2.5 rounded-lg border border-[#2C3034] space-y-1">
-              <div className="text-[#EDEEEA] font-semibold">
-                💡 Why "localhost:8080" says failed to fetch:
-              </div>
-              <p>
-                <strong>1. On Mobile:</strong> <code className="text-[#FFAE42] font-mono">localhost</code> is your phone, not your laptop! To test locally from mobile, use your laptop's Wi-Fi IP (e.g. <code className="text-[#C9FF3D] font-mono">http://192.168.1.X:8080/api</code>).
-              </p>
-              <p>
-                <strong>2. On Vercel:</strong> Browsers block insecure HTTP requests from HTTPS sites. Use the <strong>Cloud Sync</strong> at the top to sync Laptop & Mobile seamlessly with zero configuration!
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={serverUrl}
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="http://localhost:8080/api"
-                className="flex-1 bg-[#1A1D21] border border-[#2C3034] rounded-lg px-3 py-2 text-xs text-[#EDEEEA] font-mono focus:outline-none focus:border-[#C9FF3D]"
-              />
-              <button
-                onClick={testBackend}
-                disabled={isChecking}
-                className="px-3 py-2 bg-[#1A1D21] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin' : ''}`} />
-                <span>Test</span>
-              </button>
-              <button
-                onClick={handleSyncWithJava}
-                disabled={isSyncing}
-                className="px-4 py-2 bg-[#C9FF3D] hover:bg-[#B5EB34] text-[#101214] rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Syncing...' : 'Sync with Java'}</span>
-              </button>
-            </div>
-
-            {backendStatus && (
-              <div className={`text-xs p-2.5 rounded-lg border ${
-                backendStatus.connected
-                  ? 'bg-[#C9FF3D]/10 border-[#C9FF3D]/30 text-[#C9FF3D]'
-                  : 'bg-[#212528] border-[#2C3034] text-[#EDEEEA]'
-              }`}>
-                {backendStatus.message}
-              </div>
-            )}
-          </div>
-
-          {/* Card 3: Transfer & Portable Sync (Take Members / Staff list anywhere) */}
-          <div className="bg-[#212528] border border-[#2C3034] rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <ArrowDownToLine className="w-4 h-4 text-[#C9FF3D]" />
-              <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider">
-                Take Database Anywhere (Export & Import)
+            {/* Import JSON File */}
+            <div className="bg-[#212528] border border-[#2C3034] rounded-xl p-4 sm:p-5 space-y-3">
+              <span className="text-xs font-bold text-[#EDEEEA] uppercase tracking-wider block">
+                Import JSON Snapshot
               </span>
-            </div>
-            <p className="text-xs text-[#9A9E9F]">
-              Take your members list, staff list, and all records to another computer, browser, or assignment submission.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <button
-                onClick={handleExportJson}
-                className="p-3 bg-[#1A1D21] hover:bg-[#2C3034] border border-[#2C3034] hover:border-[#C9FF3D]/50 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between group"
-              >
-                <div>
-                  <div className="text-xs font-bold text-[#EDEEEA] flex items-center gap-1.5">
-                    <Download className="w-3.5 h-3.5 text-[#C9FF3D]" />
-                    <span>Export JSON Sync File</span>
-                  </div>
-                  <div className="text-[10px] text-[#5D6164] mt-0.5">
-                    Universal format for web & app transfer
-                  </div>
-                </div>
-                <span className="text-xs text-[#5D6164] font-mono group-hover:text-[#C9FF3D]">.json</span>
-              </button>
-
-              <button
-                onClick={handleExportSql}
-                className="p-3 bg-[#1A1D21] hover:bg-[#2C3034] border border-[#2C3034] hover:border-[#C9FF3D]/50 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between group"
-              >
-                <div>
-                  <div className="text-xs font-bold text-[#EDEEEA] flex items-center gap-1.5">
-                    <FileCode2 className="w-3.5 h-3.5 text-[#C9FF3D]" />
-                    <span>Export SQL Dump File</span>
-                  </div>
-                  <div className="text-[10px] text-[#5D6164] mt-0.5">
-                    Standard ANSI SQL INSERT statements
-                  </div>
-                </div>
-                <span className="text-xs text-[#5D6164] font-mono group-hover:text-[#C9FF3D]">.sql</span>
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-              <button
-                onClick={handleCopyJson}
-                className="w-full sm:w-auto flex-1 py-2 px-3 bg-[#1A1D21] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-[#C9FF3D]" /> : <Copy className="w-3.5 h-3.5 text-[#C9FF3D]" />}
-                <span>{copied ? 'Copied Snapshot!' : 'Copy Snapshot to Clipboard'}</span>
-              </button>
-
-              <label className="w-full sm:w-auto flex-1 py-2 px-3 bg-[#1A1D21] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer">
+              <p className="text-xs text-[#9A9E9F]">
+                Upload a JSON database file to restore or load an external snapshot.
+              </p>
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#1A1D21] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-semibold cursor-pointer transition-colors">
                 <Upload className="w-3.5 h-3.5 text-[#C9FF3D]" />
-                <span>Import JSON Snapshot</span>
+                <span>Upload JSON File</span>
                 <input
                   type="file"
-                  accept=".json"
+                  accept=".json,application/json"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
               </label>
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-[#2C3034] bg-[#151719] flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] rounded-xl text-xs font-semibold transition-colors cursor-pointer border border-[#2C3034]"
-          >
-            Close
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

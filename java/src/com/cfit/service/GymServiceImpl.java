@@ -56,34 +56,51 @@ public class GymServiceImpl implements GymOperations {
 
     private void seedInitialData() {
         // Seed Admin
-        userRegistry.put("admin", new AdminUser(1, "admin", "admin123", "Arun Kumar (System Admin)", "arun@cfit.com"));
+        userRegistry.put("admin", new AdminUser(1, "admin", "admin123", "JOVIN", "admin@cfit.com"));
 
         // Seed Staff
-        userRegistry.put("staff1", new StaffUser(2, "staff1", "staff123", "Priya Nair", "priya@cfit.com",
-                "Morning Shift", "9847012345", "Active", true, true, false, false));
+        userRegistry.put("staff", new StaffUser(2, "staff", "staff123", "staff", "staff@cfit.com",
+                "Morning Shift", "9847044556", "Active", true, true, true, true));
 
-        userRegistry.put("staff2", new StaffUser(3, "staff2", "staff123", "Rahul Menon", "rahul@cfit.com",
-                "Evening Shift", "9847098765", "Active", false, true, true, false));
+        userRegistry.put("adhil", new StaffUser(3, "adhil", "adhil123", "adhil", "adhil@cfit.com",
+                "Morning Shift", "9447122334", "Active", true, true, true, true));
+
+        userRegistry.put("dnv", new StaffUser(4, "dnv", "dnv123", "DNV", "dnv@cfit.com",
+                "Evening Shift", "9895033445", "Active", true, true, true, true));
+
+        userRegistry.put("balu", new StaffUser(5, "balu", "balu123", "balu", "balu@cfit.com",
+                "Evening Shift", "9847255667", "Active", true, true, true, true));
+
+        userRegistry.put("abhiram", new StaffUser(6, "abhiram", "abhiram123", "abhiram", "abhiram@cfit.com",
+                "Full Day", "9847366778", "Active", true, true, true, true));
 
         // Seed Trainers
         registerTrainer(new Trainer(trainerSeq++, "Vikram Sethi", "Strength & Bodybuilding", "+91 98471 22334", "vikram@cfit.com", "Active"));
         registerTrainer(new Trainer(trainerSeq++, "Sneha Pillai", "HIIT & Functional Cardio", "+91 98471 33445", "sneha@cfit.com", "Active"));
         registerTrainer(new Trainer(trainerSeq++, "Mathew Thomas", "CrossFit & Olympic Lifting", "+91 98471 44556", "mathew@cfit.com", "Active"));
 
-        // Seed Members
-        registerMember(new Member(memberSeq++, "GYM-0101", "Kavya Suresh", "Platinum", 1,
+        // Seed Default Members
+        registerMember(new Member(memberSeq++, "GYM-0101", "neeraj", "Gold", 1,
+                LocalDate.now().minusMonths(11), LocalDate.now().plusMonths(1), "Active"));
+
+        registerMember(new Member(memberSeq++, "GYM-0102", "abin", "Platinum", 2,
+                LocalDate.now().minusMonths(5), LocalDate.now().plusMonths(7), "Active"));
+
+        registerMember(new Member(memberSeq++, "GYM-0103", "sadi", "Silver", 3,
                 LocalDate.now().minusMonths(3), LocalDate.now().plusMonths(9), "Active"));
 
-        registerMember(new Member(memberSeq++, "GYM-0102", "Deepak Varma", "Gold", 2,
-                LocalDate.now().minusMonths(1), LocalDate.now().plusMonths(5), "Active"));
+        registerMember(new Member(memberSeq++, "GYM-0104", "vinod", "Gold", 1,
+                LocalDate.now().minusMonths(6), LocalDate.now().plusMonths(6), "Active"));
 
-        registerMember(new Member(memberSeq++, "GYM-0103", "Ananya Mohan", "Silver", null,
-                LocalDate.now().minusMonths(6), LocalDate.now().plusDays(3), "Expiring"));
+        registerMember(new Member(memberSeq++, "GYM-0105", "farzan", "Platinum", 2,
+                LocalDate.now().minusMonths(2), LocalDate.now().plusMonths(10), "Active"));
 
         // Seed Payments
-        recordPayment("GYM-0101", "Platinum — 1 Year Full Access", 28000.0, "Paid");
-        recordPayment("GYM-0102", "Gold — 6 Months Access", 13500.0, "Paid");
-        recordPayment("GYM-0103", "Silver — 1 Month Access", 1800.0, "Pending");
+        recordPayment("GYM-0101", "Gold — Monthly Access", 2500.0, "Paid");
+        recordPayment("GYM-0102", "Platinum — Annual Access", 28000.0, "Paid");
+        recordPayment("GYM-0103", "Silver — Monthly Renewal", 1800.0, "Paid");
+        recordPayment("GYM-0104", "Gold — 6 Month Access", 14000.0, "Paid");
+        recordPayment("GYM-0105", "Platinum — Monthly Renewal", 3500.0, "Pending");
 
         // Seed Classes
         FitnessClass c1 = new FitnessClass(classSeq++, "Morning CrossFit Blitz", "Strength", 1, "Vikram Sethi", "06:30 AM - 07:30 AM", "Mon, Wed, Fri", 15, 8);

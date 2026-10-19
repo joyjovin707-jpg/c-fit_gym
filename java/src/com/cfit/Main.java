@@ -73,9 +73,12 @@ public class Main {
 
     private static void loginMenu() {
         System.out.println("\n--- [TERMINAL LOGIN] ---");
-        System.out.println("Demo Accounts Available:");
-        System.out.println("  1. Admin Account : username = 'admin'  | password = 'admin123'");
-        System.out.println("  2. Staff Account : username = 'staff1' | password = 'staff123'");
+        System.out.println("  1. Admin Account : username = 'admin'   | password = 'admin123' (JOVIN)");
+        System.out.println("  2. Staff Account : username = 'staff'   | password = 'staff123'");
+        System.out.println("  3. Staff Account : username = 'adhil'   | password = 'adhil123'");
+        System.out.println("  4. Staff Account : username = 'dnv'     | password = 'dnv123'");
+        System.out.println("  5. Staff Account : username = 'balu'    | password = 'balu123'");
+        System.out.println("  6. Staff Account : username = 'abhiram' | password = 'abhiram123'");
         System.out.print("\nEnter Username: ");
         String u = scanner.nextLine().trim();
         System.out.print("Enter Password: ");

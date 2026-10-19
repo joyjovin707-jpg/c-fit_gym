@@ -1,4 +1,17 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+interface VercelRequest {
+  method?: string;
+  query?: Record<string, string | string[]>;
+  body?: any;
+  headers?: Record<string, string | string[] | undefined>;
+}
+
+interface VercelResponse {
+  status: (code: number) => VercelResponse;
+  json: (data: any) => VercelResponse;
+  send: (data: any) => VercelResponse;
+  end: () => VercelResponse;
+  setHeader: (name: string, value: string) => VercelResponse;
+}
 
 // Global in-memory cache for warm lambdas
 let cachedDbData: any = null;

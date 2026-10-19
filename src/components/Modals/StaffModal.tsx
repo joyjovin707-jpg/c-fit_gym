@@ -162,7 +162,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Vishnu Nair"
+                placeholder="e.g. adhil"
                 className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] focus:outline-none focus:border-[#C9FF3D]"
                 required
               />

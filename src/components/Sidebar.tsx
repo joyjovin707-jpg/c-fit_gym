@@ -212,19 +212,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
-        <button
-          onClick={onOpenSync}
-          className="mt-2.5 w-full px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] border border-[#2C3034] hover:border-[#C9FF3D]/40 rounded-lg flex items-center justify-between text-[10px] text-[#9A9E9F] hover:text-[#EDEEEA] transition-all cursor-pointer font-mono group"
-          title="Open Database Connection & Sync Hub"
-        >
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C9FF3D] animate-pulse" />
-            <span className="text-[#C9FF3D] font-bold">DB: Connected</span>
-          </span>
-          <span className="text-[9px] text-[#5D6164] group-hover:text-[#C9FF3D] flex items-center gap-1">
-            <RefreshCw className="w-2.5 h-2.5" /> Sync
-          </span>
-        </button>
+        {/* DB Connected button - only accessible to Administrator */}
+        {isAdmin && onOpenSync && (
+          <button
+            onClick={onOpenSync}
+            className="mt-2.5 w-full px-2.5 py-1.5 bg-[#212528] hover:bg-[#2C3034] border border-[#2C3034] hover:border-[#C9FF3D]/40 rounded-lg flex items-center justify-between text-[10px] text-[#9A9E9F] hover:text-[#EDEEEA] transition-all cursor-pointer font-mono group"
+            title="Open Database Tables & Records (Admin Only)"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C9FF3D] animate-pulse" />
+              <span className="text-[#C9FF3D] font-bold">DB: Connected</span>
+            </span>
+            <span className="text-[9px] text-[#5D6164] group-hover:text-[#C9FF3D] flex items-center gap-1">
+              <RefreshCw className="w-2.5 h-2.5" /> Tables
+            </span>
+          </button>
+        )}
 
         <div className="mt-1 px-1 flex items-center justify-between text-[9px] text-[#5D6164] font-mono">
           <span>cfit.db (SQLite)</span>

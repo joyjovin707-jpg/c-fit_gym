@@ -19,7 +19,8 @@ interface SettingsScreenProps {
   onOpenSync?: () => void;
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onNotify, onOpenSync }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onNotify, onOpenSync, currentUser }) => {
+  const isAdmin = currentUser?.role === 'Admin';
   const [gymName] = useState('C-fit Fitness Club');
   const [branch] = useState('Thiruvananthapuram — Main');
   const [currency] = useState('INR (₹)');
@@ -131,13 +132,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onNotify, onOpen
             Database connection, live synchronization, and organization configuration
           </p>
         </div>
-        {onOpenSync && (
+        {onOpenSync && isAdmin && (
           <button
             onClick={onOpenSync}
             className="px-4 py-2 bg-[#C9FF3D] hover:bg-[#b8eb32] text-[#101214] font-bold text-xs rounded-lg transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Open Database Sync Hub</span>
+            <span>Open Database Tables</span>
           </button>
         )}
       </div>
@@ -224,12 +225,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onNotify, onOpen
             />
           </label>
 
-          {onOpenSync && (
+          {onOpenSync && isAdmin && (
             <button
               onClick={onOpenSync}
               className="ml-auto text-xs text-[#C9FF3D] hover:underline flex items-center gap-1 cursor-pointer font-medium"
             >
-              <span>Manage Advanced Sync</span>
+              <span>View Database Tables</span>
               <ArrowRight className="w-3 h-3" />
             </button>
           )}

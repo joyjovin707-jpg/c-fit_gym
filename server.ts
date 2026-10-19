@@ -28,18 +28,19 @@ function loadInitialDb() {
     version: '2.0.0',
     updatedAt: new Date().toISOString(),
     members: [
-      { id: 1, member_id: 'GYM-0142', full_name: 'Rahul Sharma', plan_type: 'Platinum', trainer_id: 1, trainer_name: 'Vikram Sethi', join_date: '2026-03-01', expiry_date: '2026-09-01', status: 'Active' },
-      { id: 2, member_id: 'GYM-0071', full_name: 'Priya Nair', plan_type: 'Gold', trainer_id: 2, trainer_name: 'Sneha Pillai', join_date: '2026-02-15', expiry_date: '2026-08-15', status: 'Active' },
-      { id: 3, member_id: 'GYM-0057', full_name: 'Ananya Mohan', plan_type: 'Silver', trainer_id: null, trainer_name: 'Unassigned', join_date: '2026-01-10', expiry_date: '2026-07-10', status: 'Expiring' },
-      { id: 4, member_id: 'GYM-0198', full_name: 'Kavya Suresh', plan_type: 'Platinum', trainer_id: 1, trainer_name: 'Vikram Sethi', join_date: '2026-04-01', expiry_date: '2026-10-01', status: 'Active' },
-      { id: 5, member_id: 'GYM-0311', full_name: 'Deepak Varma', plan_type: 'Gold', trainer_id: 3, trainer_name: 'Mathew Thomas', join_date: '2026-02-01', expiry_date: '2026-08-01', status: 'Active' },
-      { id: 6, member_id: 'GYM-0233', full_name: 'Suresh Kumar', plan_type: 'Silver', trainer_id: null, trainer_name: 'Unassigned', join_date: '2026-01-20', expiry_date: '2026-07-20', status: 'Active' }
+      { id: 1, member_id: 'GYM-0101', full_name: 'neeraj', plan_type: 'Gold', trainer_id: 1, trainer_name: 'Vikram Sethi', join_date: '2025-11-15', expiry_date: '2026-11-15', status: 'Active' },
+      { id: 2, member_id: 'GYM-0102', full_name: 'abin', plan_type: 'Platinum', trainer_id: 2, trainer_name: 'Sneha Pillai', join_date: '2026-01-10', expiry_date: '2027-01-10', status: 'Active' },
+      { id: 3, member_id: 'GYM-0103', full_name: 'sadi', plan_type: 'Silver', trainer_id: 3, trainer_name: 'Mathew Thomas', join_date: '2026-03-01', expiry_date: '2026-09-01', status: 'Active' },
+      { id: 4, member_id: 'GYM-0104', full_name: 'vinod', plan_type: 'Gold', trainer_id: 1, trainer_name: 'Vikram Sethi', join_date: '2025-12-05', expiry_date: '2026-12-05', status: 'Active' },
+      { id: 5, member_id: 'GYM-0105', full_name: 'farzan', plan_type: 'Platinum', trainer_id: 2, trainer_name: 'Sneha Pillai', join_date: '2026-04-12', expiry_date: '2027-04-12', status: 'Active' }
     ],
     staff_users: [
-      { id: 1, username: 'admin', password: 'admin123', full_name: 'Gym Administrator', role: 'Admin', email: 'admin@cfitgym.com', phone: '+91 98470 11223', shift: 'Full Day', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-01-01 00:00:00' },
-      { id: 2, username: 'staff', password: 'staff123', full_name: 'Reception Frontdesk', role: 'Staff', email: 'reception@cfitgym.com', phone: '+91 98470 44556', shift: 'Morning', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-03-15 08:30:00' },
-      { id: 3, username: 'vishnu', password: 'staff123', full_name: 'Vishnu Nair', role: 'Staff', email: 'vishnu.nair@cfitgym.com', phone: '+91 94471 22334', shift: 'Evening', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-06-20 14:00:00' },
-      { id: 4, username: 'anjali', password: 'staff123', full_name: 'Anjali Menon', role: 'Staff', email: 'anjali.m@cfitgym.com', phone: '+91 98950 33445', shift: 'Morning', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: false, created_at: '2025-08-10 09:15:00' }
+      { id: 1, username: 'admin', password: 'admin123', full_name: 'JOVIN', role: 'Admin', email: 'admin@cfitgym.com', phone: '+91 98470 11223', shift: 'Full Day', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-01-01 00:00:00' },
+      { id: 2, username: 'staff', password: 'staff123', full_name: 'staff', role: 'Staff', email: 'staff@cfitgym.com', phone: '+91 98470 44556', shift: 'Morning', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-03-15 08:30:00' },
+      { id: 3, username: 'adhil', password: 'adhil123', full_name: 'adhil', role: 'Staff', email: 'adhil@cfitgym.com', phone: '+91 94471 22334', shift: 'Morning', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-06-20 14:00:00' },
+      { id: 4, username: 'dnv', password: 'dnv123', full_name: 'DNV', role: 'Staff', email: 'dnv@cfitgym.com', phone: '+91 98950 33445', shift: 'Evening', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-08-10 09:15:00' },
+      { id: 5, username: 'balu', password: 'balu123', full_name: 'balu', role: 'Staff', email: 'balu@cfitgym.com', phone: '+91 98472 55667', shift: 'Evening', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-09-01 10:00:00' },
+      { id: 6, username: 'abhiram', password: 'abhiram123', full_name: 'abhiram', role: 'Staff', email: 'abhiram@cfitgym.com', phone: '+91 98473 66778', shift: 'Full Day', status: 'Active', can_manage_members: true, can_process_payments: true, can_manage_classes: true, can_manage_trainers: true, created_at: '2025-09-15 11:30:00' }
     ],
     trainers: [
       { id: 1, trainer_code: 'TR-01', full_name: 'Vikram Sethi', specialty: 'Strength & Bodybuilding', rating: 4.9, clients_assigned: 14, sessions_this_week: 22 },
@@ -47,17 +48,25 @@ function loadInitialDb() {
       { id: 3, trainer_code: 'TR-03', full_name: 'Mathew Thomas', specialty: 'CrossFit & Olympic Lifting', rating: 4.7, clients_assigned: 9, sessions_this_week: 16 }
     ],
     attendance: [
-      { id: 1, member_id: 'GYM-0142', member_name: 'Rahul Sharma', check_in_time: '2026-10-18 06:15:00', check_out_time: null, check_in_method: 'Reception Desk', duration: 'In progress' },
-      { id: 2, member_id: 'GYM-0071', member_name: 'Priya Nair', check_in_time: '2026-10-18 07:00:00', check_out_time: null, check_in_method: 'Reception Desk', duration: 'In progress' }
+      { id: 1, member_id: 'GYM-0101', member_name: 'neeraj', check_in_time: '2026-10-19 06:15:00', check_out_time: '2026-10-19 07:30:00', check_in_method: 'Reception Desk', duration: '1h 15m' },
+      { id: 2, member_id: 'GYM-0102', member_name: 'abin', check_in_time: '2026-10-19 07:05:00', check_out_time: null, check_in_method: 'Reception Desk', duration: 'In progress' },
+      { id: 3, member_id: 'GYM-0103', member_name: 'sadi', check_in_time: '2026-10-18 17:30:00', check_out_time: '2026-10-18 18:45:00', check_in_method: 'Reception Desk', duration: '1h 15m' },
+      { id: 4, member_id: 'GYM-0104', member_name: 'vinod', check_in_time: '2026-10-19 08:15:00', check_out_time: '2026-10-19 09:20:00', check_in_method: 'Reception Desk', duration: '1h 05m' },
+      { id: 5, member_id: 'GYM-0105', member_name: 'farzan', check_in_time: '2026-10-19 09:00:00', check_out_time: null, check_in_method: 'Reception Desk', duration: 'In progress' }
     ],
     payments: [
-      { id: 1, member_id: 'GYM-0142', member_name: 'Rahul Sharma', plan_description: 'Platinum — 6 Months Full Access', amount: 15000, due_date: '2026-10-30', payment_status: 'Paid' },
-      { id: 2, member_id: 'GYM-0071', member_name: 'Priya Nair', plan_description: 'Gold — Quarterly Access', amount: 8500, due_date: '2026-11-05', payment_status: 'Paid' },
-      { id: 3, member_id: 'GYM-0057', member_name: 'Ananya Mohan', plan_description: 'Silver — Monthly Renewal', amount: 2000, due_date: '2026-10-20', payment_status: 'Pending' }
+      { id: 1, member_id: 'GYM-0101', member_name: 'neeraj', plan_description: 'Gold — monthly', amount: 2500, due_date: '2026-10-15', payment_status: 'Paid' },
+      { id: 2, member_id: 'GYM-0102', member_name: 'abin', plan_description: 'Platinum — annual', amount: 28000, due_date: '2026-10-01', payment_status: 'Paid' },
+      { id: 3, member_id: 'GYM-0103', member_name: 'sadi', plan_description: 'Silver — monthly', amount: 1800, due_date: '2026-10-10', payment_status: 'Paid' },
+      { id: 4, member_id: 'GYM-0104', member_name: 'vinod', plan_description: 'Gold — 6 month', amount: 14000, due_date: '2026-10-25', payment_status: 'Paid' },
+      { id: 5, member_id: 'GYM-0105', member_name: 'farzan', plan_description: 'Platinum — monthly', amount: 3500, due_date: '2026-10-24', payment_status: 'Pending' }
     ],
     classes: [
-      { id: 1, class_name: 'CrossFit Power Hour', trainer_id: 1, trainer_name: 'Vikram Sethi', studio_location: 'Studio A (Ground)', start_time: '06:30 AM', max_capacity: 15, booked_count: 8 },
-      { id: 2, class_name: 'HIIT Conditioning Blitz', trainer_id: 2, trainer_name: 'Sneha Pillai', studio_location: 'Studio B (Level 1)', start_time: '07:30 AM', max_capacity: 20, booked_count: 14 }
+      { id: 1, class_name: 'CrossFit Power Hour', trainer_id: 1, trainer_name: 'Vikram Sethi', studio_location: 'Studio A (Ground)', start_time: '06:30 AM', max_capacity: 15, booked_count: 1 },
+      { id: 2, class_name: 'HIIT Conditioning Blitz', trainer_id: 2, trainer_name: 'Sneha Pillai', studio_location: 'Studio B (Level 1)', start_time: '07:30 AM', max_capacity: 20, booked_count: 1 },
+      { id: 3, class_name: 'Power Yoga Flow', trainer_id: 4, trainer_name: 'Meera Varma', studio_location: 'Studio C (Level 2)', start_time: '08:30 AM', max_capacity: 12, booked_count: 1 },
+      { id: 4, class_name: 'Strength & Hypertrophy', trainer_id: 3, trainer_name: 'Anand Jacob', studio_location: 'Studio A (Ground)', start_time: '05:30 PM', max_capacity: 15, booked_count: 1 },
+      { id: 5, class_name: 'Spin & Cardio Blast', trainer_id: 2, trainer_name: 'Sneha Pillai', studio_location: 'Studio B (Level 1)', start_time: '06:30 PM', max_capacity: 18, booked_count: 1 }
     ]
   };
 
