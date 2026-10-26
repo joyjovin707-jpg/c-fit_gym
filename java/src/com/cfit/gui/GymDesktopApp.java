@@ -1,5 +1,6 @@
 package com.cfit.gui;
 
+import com.cfit.jdbc.DBConnection;
 import com.cfit.model.*;
 import com.cfit.service.GymServiceImpl;
 
@@ -577,17 +578,46 @@ public class GymDesktopApp extends JFrame {
         panel.setBackground(BG_DARK);
         panel.setBorder(new EmptyBorder(24, 24, 24, 24));
 
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BG_DARK);
+
         JLabel title = new JLabel("Staff Control & Role-Based Access Control (RBAC)");
         title.setFont(new Font("SansSerif", Font.BOLD, 22));
         title.setForeground(TEXT_WHITE);
-        panel.add(title, BorderLayout.NORTH);
+        headerPanel.add(title, BorderLayout.WEST);
 
-        DefaultTableModel staffModel = new DefaultTableModel(new String[]{"ID", "Staff Member", "Username", "Role", "Shift", "Status"}, 0);
-        gymService.getUserRegistry().forEach((k, u) -> {
-            String shift = (u instanceof StaffUser) ? ((StaffUser) u).getDutyShift() : "Full Authority";
-            String stat = (u instanceof StaffUser) ? ((StaffUser) u).getStatus() : "Active";
-            staffModel.addRow(new Object[]{u.getId(), u.getFullName(), u.getUsername(), u.getRole(), shift, stat});
+        DefaultTableModel staffModel = new DefaultTableModel(new String[]{"ID", "Staff Member", "Username", "Role", "Shift", "Status"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        Runnable reloadStaffTable = () -> {
+            staffModel.setRowCount(0);
+            gymService.getUserRegistry().forEach((k, u) -> {
+                String shift = (u instanceof StaffUser) ? ((StaffUser) u).getDutyShift() : "Full Authority";
+                String stat = (u instanceof StaffUser) ? ((StaffUser) u).getStatus() : "Active";
+                staffModel.addRow(new Object[]{u.getId(), u.getFullName(), u.getUsername(), u.getRole(), shift, stat});
+            });
+        };
+        reloadStaffTable.run();
+
+        JButton editUsernameBtn = new JButton("Change Username (Admin / Staff)");
+        styleAccentButton(editUsernameBtn);
+        editUsernameBtn.addActionListener(e -> {
+            String oldUname = JOptionPane.showInputDialog(this, "Enter current username to modify (e.g., admin or staff):", "Change Username", JOptionPane.QUESTION_MESSAGE);
+            if (oldUname == null || oldUname.trim().isEmpty()) return;
+            String newUname = JOptionPane.showInputDialog(this, "Enter desired new username for '" + oldUname.trim() + "':", "New Username", JOptionPane.QUESTION_MESSAGE);
+            if (newUname == null || newUname.trim().isEmpty()) return;
+
+            boolean ok = gymService.updateUsername(oldUname.trim(), newUname.trim());
+            if (ok) {
+                reloadStaffTable.run();
+                JOptionPane.showMessageDialog(this, "Username successfully updated to: " + newUname.trim(), "Success", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Could not update username. Account not found or username already exists.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
+        headerPanel.add(editUsernameBtn, BorderLayout.EAST);
+        panel.add(headerPanel, BorderLayout.NORTH);
 
         JTable table = createDarkTable(staffModel);
         JScrollPane scroll = new JScrollPane(table);
@@ -603,7 +633,7 @@ public class GymDesktopApp extends JFrame {
         panel.setBackground(BG_DARK);
         panel.setBorder(new EmptyBorder(24, 24, 24, 24));
 
-        JLabel title = new JLabel("OOP Architectural Principles Mapping (KTU S3 B.Tech CSE)");
+        JLabel title = new JLabel("OOP & JDBC Architectural Principles Mapping (KTU S3 B.Tech CSE)");
         title.setFont(new Font("SansSerif", Font.BOLD, 20));
         title.setForeground(ACCENT_LIME);
         panel.add(title, BorderLayout.NORTH);
@@ -632,7 +662,11 @@ public class GymDesktopApp extends JFrame {
                 "   • Runtime Polymorphism (Method Overriding): MembershipPlan -> SilverPlan, GoldPlan, PlatinumPlan.\n" +
                 "   • Compile-time Polymorphism (Method Overloading): findMember(String id) vs findMember(int id).\n\n" +
                 "5. SINGLETON DESIGN PATTERN:\n" +
-                "   • GymServiceImpl.java enforces private constructor & global thread-safe getInstance().\n" +
+                "   • GymServiceImpl.java enforces private constructor & global thread-safe getInstance().\n\n" +
+                "6. JDBC CONNECTION ARCHITECTURE:\n" +
+                "   • Dedicated Source Package: com.cfit.jdbc\n" +
+                "   • Components: DBConnection.java, JDBCConfig.java, ConnectionFactory.java, DatabaseInitializer.java, JDBCHelper.java\n" +
+                "   • Live JDBC Driver Status: " + DBConnection.getStatusMessage() + "\n" +
                 "========================================================================================\n"
         );
 

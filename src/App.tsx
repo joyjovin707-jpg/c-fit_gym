@@ -125,7 +125,7 @@ export function App() {
 
       setCurrentUser((prev) => {
         if (!prev) return prev;
-        const matching = staff.find((s) => s.username.toLowerCase() === prev.username.toLowerCase());
+        const matching = staff.find((s) => s.id === prev.id || s.username.toLowerCase() === prev.username.toLowerCase());
         if (matching) {
           try {
             localStorage.setItem('cfit_auth_user', JSON.stringify(matching));

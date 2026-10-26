@@ -74,8 +74,17 @@ export const StaffModal: React.FC<StaffModalProps> = ({
       setError('Please enter staff member full name.');
       return;
     }
-    if (!isEditing && !username.trim()) {
-      setError('Please choose a unique username.');
+    const cleanUser = username.trim().toLowerCase();
+    if (!cleanUser) {
+      setError('Please specify a username.');
+      return;
+    }
+    if (cleanUser.length < 3) {
+      setError('Username must be at least 3 characters long.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUser)) {
+      setError('Username can only contain letters, numbers, underscores, hyphens, and dots.');
       return;
     }
     if (!isEditing && !password.trim()) {
@@ -88,6 +97,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({
 
     try {
       const payload: any = {
+        username: cleanUser,
         full_name: fullName.trim(),
         role,
         email: email.trim(),
@@ -100,10 +110,7 @@ export const StaffModal: React.FC<StaffModalProps> = ({
         can_manage_trainers: canManageTrainers,
       };
 
-      if (!isEditing) {
-        payload.username = username.trim().toLowerCase();
-        payload.password = password.trim();
-      } else if (password.trim()) {
+      if (password.trim()) {
         payload.password = password.trim();
       }
 
@@ -187,18 +194,32 @@ export const StaffModal: React.FC<StaffModalProps> = ({
           {/* Username & Password */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#9A9E9F] mb-1">
-                Username *
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. vishnu"
-                disabled={isEditing}
-                className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] font-mono focus:outline-none focus:border-[#C9FF3D] disabled:opacity-50"
-                required={!isEditing}
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#9A9E9F]">
+                  Username *
+                </label>
+                {isEditing && (
+                  <span className="text-[10px] text-[#C9FF3D] font-mono">
+                    Editable by Admin
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-xs text-[#5D6164] font-mono">@</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                  placeholder="e.g. adhil"
+                  className="w-full bg-[#212528] border border-[#2C3034] rounded-lg pl-7 pr-3 py-2 text-sm text-[#EDEEEA] font-mono focus:outline-none focus:border-[#C9FF3D] transition-colors"
+                  required
+                />
+              </div>
+              <p className="text-[10px] text-[#5D6164] mt-1">
+                {isEditing
+                  ? 'Admin can update this username. Used for terminal login.'
+                  : 'Unique login handle (lowercase, numbers, underscore).'}
+              </p>
             </div>
 
             <div>

@@ -1,5 +1,6 @@
 package com.cfit;
 
+import com.cfit.jdbc.DBConnection;
 import com.cfit.model.*;
 import com.cfit.service.GymServiceImpl;
 
@@ -73,13 +74,7 @@ public class Main {
 
     private static void loginMenu() {
         System.out.println("\n--- [TERMINAL LOGIN] ---");
-        System.out.println("  1. Admin Account : username = 'admin'   | password = 'admin123' (JOVIN)");
-        System.out.println("  2. Staff Account : username = 'staff'   | password = 'staff123'");
-        System.out.println("  3. Staff Account : username = 'adhil'   | password = 'adhil123'");
-        System.out.println("  4. Staff Account : username = 'dnv'     | password = 'dnv123'");
-        System.out.println("  5. Staff Account : username = 'balu'    | password = 'balu123'");
-        System.out.println("  6. Staff Account : username = 'abhiram' | password = 'abhiram123'");
-        System.out.print("\nEnter Username: ");
+        System.out.print("Enter Username: ");
         String u = scanner.nextLine().trim();
         System.out.print("Enter Password: ");
         String p = scanner.nextLine().trim();
@@ -241,6 +236,34 @@ public class Main {
         gymService.getUserRegistry().forEach((uname, u) -> {
             System.out.println(" • " + u);
         });
+
+        System.out.println("\nStaff Administration Options:");
+        System.out.println(" 1. Modify Account Username (Admin or Staff)");
+        System.out.println(" 2. Return to Main Menu");
+        System.out.print("Enter choice (1-2): ");
+        String choice = scanner.nextLine().trim();
+
+        if ("1".equals(choice)) {
+            System.out.print("Enter current username to modify: ");
+            String oldUname = scanner.nextLine().trim();
+            System.out.print("Enter desired new username: ");
+            String newUname = scanner.nextLine().trim();
+
+            if (newUname.isEmpty()) {
+                System.out.println("[ERROR] Username cannot be empty.");
+                return;
+            }
+
+            boolean success = gymService.updateUsername(oldUname, newUname);
+            if (success) {
+                System.out.println("\n[SUCCESS] Username changed successfully from '" + oldUname + "' to '" + newUname + "'!");
+                if (currentUser.getUsername().equalsIgnoreCase(oldUname)) {
+                    currentUser.setUsername(newUname);
+                }
+            } else {
+                System.out.println("\n[ERROR] Failed to change username. Account may not exist or new username is already taken.");
+            }
+        }
     }
 
     private static void handleSystemDiagnostics() {
@@ -252,6 +275,8 @@ public class Main {
         System.out.println(" 3. INHERITANCE   : User parent class -> StaffUser & AdminUser specialized children.");
         System.out.println(" 4. POLYMORPHISM  : MembershipPlan abstract base -> Silver, Gold, Platinum pricing.");
         System.out.println(" 5. DESIGN PATTERN: Singleton Pattern implemented on GymServiceImpl.");
+        System.out.println(" 6. JDBC PACKAGE  : Dedicated folder java/src/com/cfit/jdbc/");
+        System.out.println("    JDBC Status   : " + DBConnection.getStatusMessage());
         System.out.println("================================================================================");
     }
 }

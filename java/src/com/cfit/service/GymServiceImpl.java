@@ -95,18 +95,39 @@ public class GymServiceImpl implements GymOperations {
         registerMember(new Member(memberSeq++, "GYM-0105", "farzan", "Platinum", 2,
                 LocalDate.now().minusMonths(2), LocalDate.now().plusMonths(10), "Active"));
 
-        // Seed Payments
+        // Seed Payments (5 records for 5 members)
         recordPayment("GYM-0101", "Gold — Monthly Access", 2500.0, "Paid");
         recordPayment("GYM-0102", "Platinum — Annual Access", 28000.0, "Paid");
         recordPayment("GYM-0103", "Silver — Monthly Renewal", 1800.0, "Paid");
         recordPayment("GYM-0104", "Gold — 6 Month Access", 14000.0, "Paid");
         recordPayment("GYM-0105", "Platinum — Monthly Renewal", 3500.0, "Pending");
 
-        // Seed Classes
-        FitnessClass c1 = new FitnessClass(classSeq++, "Morning CrossFit Blitz", "Strength", 1, "Vikram Sethi", "06:30 AM - 07:30 AM", "Mon, Wed, Fri", 15, 8);
-        FitnessClass c2 = new FitnessClass(classSeq++, "Cardio Shred & Core", "HIIT", 2, "Sneha Pillai", "06:00 PM - 07:00 PM", "Tue, Thu, Sat", 20, 14);
+        // Seed Attendance Logs (5 records for 5 members)
+        AttendanceRecord a1 = new AttendanceRecord(attendanceSeq++, "GYM-0101", "neeraj", LocalDateTime.now().minusHours(4));
+        a1.checkOut(LocalDateTime.now().minusHours(2));
+        AttendanceRecord a2 = new AttendanceRecord(attendanceSeq++, "GYM-0102", "abin", LocalDateTime.now().minusHours(3));
+        AttendanceRecord a3 = new AttendanceRecord(attendanceSeq++, "GYM-0103", "sadi", LocalDateTime.now().minusDays(1).minusHours(2));
+        a3.checkOut(LocalDateTime.now().minusDays(1).minusHours(1));
+        AttendanceRecord a4 = new AttendanceRecord(attendanceSeq++, "GYM-0104", "vinod", LocalDateTime.now().minusHours(2));
+        a4.checkOut(LocalDateTime.now().minusHours(1));
+        AttendanceRecord a5 = new AttendanceRecord(attendanceSeq++, "GYM-0105", "farzan", LocalDateTime.now().minusMinutes(50));
+        attendanceLog.add(a1);
+        attendanceLog.add(a2);
+        attendanceLog.add(a3);
+        attendanceLog.add(a4);
+        attendanceLog.add(a5);
+
+        // Seed Classes (5 classes)
+        FitnessClass c1 = new FitnessClass(classSeq++, "CrossFit Power Hour", "Strength", 1, "Vikram Sethi", "06:30 AM - 07:30 AM", "Mon, Wed, Fri", 15, 1);
+        FitnessClass c2 = new FitnessClass(classSeq++, "HIIT Conditioning Blitz", "HIIT", 2, "Sneha Pillai", "07:30 AM - 08:30 AM", "Tue, Thu, Sat", 20, 1);
+        FitnessClass c3 = new FitnessClass(classSeq++, "Power Yoga Flow", "Yoga", 3, "Mathew Thomas", "08:30 AM - 09:30 AM", "Mon, Wed, Fri", 12, 1);
+        FitnessClass c4 = new FitnessClass(classSeq++, "Strength & Hypertrophy", "Strength", 1, "Vikram Sethi", "05:30 PM - 06:30 PM", "Mon, Tue, Thu", 15, 1);
+        FitnessClass c5 = new FitnessClass(classSeq++, "Spin & Cardio Blast", "Cardio", 2, "Sneha Pillai", "06:30 PM - 07:30 PM", "Daily", 18, 1);
         classRegistry.put(c1.getId(), c1);
         classRegistry.put(c2.getId(), c2);
+        classRegistry.put(c3.getId(), c3);
+        classRegistry.put(c4.getId(), c4);
+        classRegistry.put(c5.getId(), c5);
     }
 
     @Override
@@ -243,5 +264,21 @@ public class GymServiceImpl implements GymOperations {
 
     public Map<String, User> getUserRegistry() {
         return userRegistry;
+    }
+
+    public boolean updateUsername(String oldUsername, String newUsername) {
+        if (oldUsername == null || newUsername == null) return false;
+        String cleanOld = oldUsername.trim().toLowerCase();
+        String cleanNew = newUsername.trim().toLowerCase();
+        if (userRegistry.containsKey(cleanNew) && !cleanNew.equals(cleanOld)) {
+            return false;
+        }
+        User user = userRegistry.remove(cleanOld);
+        if (user != null) {
+            user.setUsername(cleanNew);
+            userRegistry.put(cleanNew, user);
+            return true;
+        }
+        return false;
     }
 }

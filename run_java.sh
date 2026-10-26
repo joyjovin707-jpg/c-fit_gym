@@ -13,7 +13,7 @@ echo ""
 echo "Select mode to run C-FIT:"
 echo " 1. Console / Terminal Interactive Mode (com.cfit.Main)"
 echo " 2. Desktop GUI Mode - Java Swing (com.cfit.gui.GymDesktopApp)"
-echo " 3. Pure Java REST API Server on port 8080 (com.cfit.server.GymHttpServer)"
+echo " 3. Pure Java REST API Server on port 8085 (com.cfit.server.GymHttpServer)"
 echo ""
 read -p "Enter choice [1-3] (Default 1): " choice
 
@@ -23,8 +23,8 @@ case "$choice" in
         java -cp java/bin com.cfit.gui.GymDesktopApp
         ;;
     3)
-        echo "Starting C-FIT Java HTTP Server on :8080..."
-        java -cp java/bin com.cfit.server.GymHttpServer
+        echo "Starting C-FIT Java HTTP Server on :8085..."
+        java -cp java/bin com.cfit.server.GymHttpServer 8085
         ;;
     *)
         echo "Starting C-FIT Console App..."

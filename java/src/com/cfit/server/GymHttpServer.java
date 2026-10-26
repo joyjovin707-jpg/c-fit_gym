@@ -19,11 +19,27 @@ import java.util.List;
  */
 public class GymHttpServer {
 
-    private static final int PORT = 8080;
     private static final GymServiceImpl gymService = GymServiceImpl.getInstance();
 
     public static void main(String[] args) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
+        int port = 8080;
+        String envPort = System.getenv("JAVA_PORT");
+        if (envPort != null && !envPort.trim().isEmpty()) {
+            try { port = Integer.parseInt(envPort.trim()); } catch (Exception ignored) {}
+        }
+        if (args != null && args.length > 0) {
+            try { port = Integer.parseInt(args[0].trim()); } catch (Exception ignored) {}
+        }
+
+        HttpServer server;
+        try {
+            server = HttpServer.create(new InetSocketAddress(port), 0);
+        } catch (java.net.BindException ex) {
+            int fallbackPort = 8085;
+            System.out.println("[WARN] Port " + port + " in use (e.g. system proxy). Binding to " + fallbackPort + " instead.");
+            port = fallbackPort;
+            server = HttpServer.create(new InetSocketAddress(port), 0);
+        }
 
         server.createContext("/api/members", new MembersHandler());
         server.createContext("/api/staff", new StaffHandler());
@@ -36,7 +52,7 @@ public class GymHttpServer {
 
         server.setExecutor(null); // default executor
         server.start();
-        System.out.println("[JAVA SERVER] C-FIT Java Backend Server running on http://localhost:" + PORT + "/api/");
+        System.out.println("[JAVA SERVER] C-FIT Java Backend Server running on http://localhost:" + port + "/api/");
     }
 
     private static void sendResponse(HttpExchange exchange, int statusCode, String responseText) throws IOException {
@@ -217,6 +233,7 @@ public class GymHttpServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String json = "{\"architecture\":\"Java 17 OOP\"," +
+                    "\"jdbc\":{\"package\":\"com.cfit.jdbc\",\"status\":\"" + com.cfit.jdbc.DBConnection.getStatusMessage().replace("\"", "\\\"") + "\"}," +
                     "\"principles\":[\"Encapsulation (Private fields with guarded mutators)\"," +
                     "\"Abstraction (GymOperations interface & MembershipPlan abstract class)\"," +
                     "\"Inheritance (User -> StaffUser & AdminUser)\"," +

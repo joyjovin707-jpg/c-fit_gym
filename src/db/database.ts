@@ -502,50 +502,40 @@ class GymDatabase {
         );
       `);
 
-      // 2. Insert or update Administrator JOVIN (username: admin, pass: admin123)
+      // 2. Only seed initial staff users if staff_users table is empty
+      const staffCountRes = db.exec('SELECT COUNT(*) FROM staff_users');
+      const staffCount = staffCountRes.length > 0 && staffCountRes[0].values.length > 0 ? Number(staffCountRes[0].values[0][0]) : 0;
+      if (staffCount === 0) {
+        db.run(`
+          INSERT INTO staff_users (id, username, password, full_name, role, email, phone, shift, status, can_manage_members, can_process_payments, can_manage_classes, can_manage_trainers, created_at)
+          VALUES (1, 'admin', 'admin123', 'JOVIN', 'Admin', 'admin@cfitgym.com', '+91 98470 11223', 'Full Day', 'Active', 1, 1, 1, 1, '2025-01-01 00:00:00'),
+                 (2, 'staff', 'staff123', 'staff', 'Staff', 'staff@cfitgym.com', '+91 98470 44556', 'Morning', 'Active', 1, 1, 1, 1, '2025-03-15 08:30:00'),
+                 (3, 'adhil', 'adhil123', 'adhil', 'Staff', 'adhil@cfitgym.com', '+91 94471 22334', 'Morning', 'Active', 1, 1, 1, 1, '2025-06-20 14:00:00'),
+                 (4, 'dnv', 'dnv123', 'DNV', 'Staff', 'dnv@cfitgym.com', '+91 98950 33445', 'Evening', 'Active', 1, 1, 1, 1, '2025-08-10 09:15:00'),
+                 (5, 'balu', 'balu123', 'balu', 'Staff', 'balu@cfitgym.com', '+91 98472 55667', 'Evening', 'Active', 1, 1, 1, 1, '2025-09-01 10:00:00'),
+                 (6, 'abhiram', 'abhiram123', 'abhiram', 'Staff', 'abhiram@cfitgym.com', '+91 98473 66778', 'Full Day', 'Active', 1, 1, 1, 1, '2025-09-15 11:30:00');
+        `);
+      }
+
+      // 3. Remove old dummy accounts from legacy test iterations
       db.run(`
-        INSERT OR IGNORE INTO staff_users (id, username, password, full_name, role, email, phone, shift, status, can_manage_members, can_process_payments, can_manage_classes, can_manage_trainers, created_at)
-        VALUES (1, 'admin', 'admin123', 'JOVIN', 'Admin', 'admin@cfitgym.com', '+91 98470 11223', 'Full Day', 'Active', 1, 1, 1, 1, '2025-01-01 00:00:00');
-        UPDATE staff_users SET full_name = 'JOVIN', password = 'admin123', role = 'Admin' WHERE username = 'admin';
+        DELETE FROM staff_users WHERE LOWER(username) IN ('gym administrator', 'rahul krishnan', 'sneha pillai', 'anand jacob', 'meera varma', 'divya thomas', 'kiran das');
       `);
 
-      // 3. Staff members:
-      // 0. staff(staff, staff123)
-      // 1. adhil(adhil, adhil123)
-      // 2. DNV(dnv, dnv123)
-      // 3. balu(balu, balu123)
-      // 4. abhiram(abhiram, abhiram123)
-      db.run(`
-        INSERT OR IGNORE INTO staff_users (id, username, password, full_name, role, email, phone, shift, status, can_manage_members, can_process_payments, can_manage_classes, can_manage_trainers, created_at)
-        VALUES (2, 'staff', 'staff123', 'staff', 'Staff', 'staff@cfitgym.com', '+91 98470 44556', 'Morning', 'Active', 1, 1, 1, 1, '2025-03-15 08:30:00'),
-               (3, 'adhil', 'adhil123', 'adhil', 'Staff', 'adhil@cfitgym.com', '+91 94471 22334', 'Morning', 'Active', 1, 1, 1, 1, '2025-06-20 14:00:00'),
-               (4, 'dnv', 'dnv123', 'DNV', 'Staff', 'dnv@cfitgym.com', '+91 98950 33445', 'Evening', 'Active', 1, 1, 1, 1, '2025-08-10 09:15:00'),
-               (5, 'balu', 'balu123', 'balu', 'Staff', 'balu@cfitgym.com', '+91 98472 55667', 'Evening', 'Active', 1, 1, 1, 1, '2025-09-01 10:00:00'),
-               (6, 'abhiram', 'abhiram123', 'abhiram', 'Staff', 'abhiram@cfitgym.com', '+91 98473 66778', 'Full Day', 'Active', 1, 1, 1, 1, '2025-09-15 11:30:00');
-        
-        UPDATE staff_users SET full_name = 'staff', password = 'staff123' WHERE username = 'staff';
-        UPDATE staff_users SET full_name = 'adhil', password = 'adhil123' WHERE username = 'adhil';
-        UPDATE staff_users SET full_name = 'DNV', password = 'dnv123' WHERE username = 'dnv';
-        UPDATE staff_users SET full_name = 'balu', password = 'balu123' WHERE username = 'balu';
-        UPDATE staff_users SET full_name = 'abhiram', password = 'abhiram123' WHERE username = 'abhiram';
-      `);
-
-      // 4. Remove dummy staff users
-      db.run(`
-        DELETE FROM staff_users WHERE LOWER(username) NOT IN ('admin', 'staff', 'adhil', 'dnv', 'balu', 'abhiram');
-      `);
-
-      // 5. Update admin credentials table
-      db.run(`
-        INSERT OR REPLACE INTO admin (username, password, role) VALUES
-        ('admin', 'admin123', 'Admin access'),
-        ('staff', 'staff123', 'Staff access'),
-        ('adhil', 'adhil123', 'Staff access'),
-        ('dnv', 'dnv123', 'Staff access'),
-        ('balu', 'balu123', 'Staff access'),
-        ('abhiram', 'abhiram123', 'Staff access');
-        DELETE FROM admin WHERE LOWER(username) NOT IN ('admin', 'staff', 'adhil', 'dnv', 'balu', 'abhiram');
-      `);
+      // 4. Ensure admin credentials table is populated
+      const adminCountRes = db.exec('SELECT COUNT(*) FROM admin');
+      const adminCount = adminCountRes.length > 0 && adminCountRes[0].values.length > 0 ? Number(adminCountRes[0].values[0][0]) : 0;
+      if (adminCount === 0) {
+        db.run(`
+          INSERT OR REPLACE INTO admin (username, password, role) VALUES
+          ('admin', 'admin123', 'Admin access'),
+          ('staff', 'staff123', 'Staff access'),
+          ('adhil', 'adhil123', 'Staff access'),
+          ('dnv', 'dnv123', 'Staff access'),
+          ('balu', 'balu123', 'Staff access'),
+          ('abhiram', 'abhiram123', 'Staff access');
+        `);
+      }
 
       // 6. Ensure default members: 1. neeraj, 2. abin, 3. sadi, 4. vinod, 5. farzan
       db.run(`
@@ -1416,6 +1406,42 @@ class GymDatabase {
     const db = await this.getDb();
     const sets: string[] = [];
 
+    // Allow updating username
+    if (data.username !== undefined) {
+      const cleanUsername = data.username.trim().toLowerCase();
+      if (!cleanUsername) {
+        return { success: false, message: 'Username cannot be empty.' };
+      }
+      if (cleanUsername.length < 3) {
+        return { success: false, message: 'Username must be at least 3 characters long.' };
+      }
+      if (!/^[a-zA-Z0-9_.-]+$/.test(cleanUsername)) {
+        return { success: false, message: 'Username can only contain alphanumeric characters, underscores, hyphens, and dots.' };
+      }
+
+      // Check if another staff user already has this username
+      const check = db.exec(`SELECT id FROM staff_users WHERE LOWER(username) = '${cleanUsername.replace(/'/g, "''")}' AND id != ${id}`);
+      if (check.length > 0 && check[0].values.length > 0) {
+        return { success: false, message: `Username '@${cleanUsername}' is already taken by another account.` };
+      }
+
+      // Fetch previous username to sync with admin credentials table
+      const prevRes = db.exec(`SELECT username, role FROM staff_users WHERE id = ${id}`);
+      const oldUsername = prevRes.length > 0 && prevRes[0].values.length > 0 ? String(prevRes[0].values[0][0]) : '';
+      const userRole = prevRes.length > 0 && prevRes[0].values.length > 0 ? String(prevRes[0].values[0][1]) : '';
+
+      sets.push(`username = '${cleanUsername.replace(/'/g, "''")}'`);
+
+      // If this user is Admin or old username was in admin credentials table, update admin table
+      if (oldUsername && (userRole === 'Admin' || oldUsername.toLowerCase() === 'admin')) {
+        try {
+          db.run(`UPDATE admin SET username = '${cleanUsername.replace(/'/g, "''")}' WHERE LOWER(username) = '${oldUsername.toLowerCase()}'`);
+        } catch {
+          // Ignore
+        }
+      }
+    }
+
     if (data.full_name !== undefined) sets.push(`full_name = '${data.full_name.replace(/'/g, "''")}'`);
     if (data.role !== undefined) sets.push(`role = '${data.role.replace(/'/g, "''")}'`);
     if (data.email !== undefined) sets.push(`email = '${data.email.replace(/'/g, "''")}'`);
@@ -1433,7 +1459,21 @@ class GymDatabase {
     db.run(`UPDATE staff_users SET ${sets.join(', ')} WHERE id = ${id}`);
     this.persist();
     this.notify();
-    return { success: true };
+    return { success: true, message: 'User updated successfully.' };
+  }
+
+  public async changeAdminUsername(newUsername: string, adminId?: number): Promise<{ success: boolean; message?: string }> {
+    const db = await this.getDb();
+    let targetId = adminId;
+    if (!targetId) {
+      const res = db.exec("SELECT id FROM staff_users WHERE role = 'Admin' ORDER BY id ASC LIMIT 1");
+      if (res.length > 0 && res[0].values.length > 0) {
+        targetId = Number(res[0].values[0][0]);
+      } else {
+        targetId = 1;
+      }
+    }
+    return this.updateStaffUser(targetId, { username: newUsername });
   }
 
   public async deleteStaffUser(id: number): Promise<{ success: boolean; message?: string }> {
@@ -1443,7 +1483,8 @@ class GymDatabase {
       return { success: false, message: 'Staff member not found.' };
     }
     const username = String(userRes[0].values[0][0]);
-    if (username === 'admin') {
+    const role = String(userRes[0].values[0][1]);
+    if (username === 'admin' || role === 'Admin') {
       return { success: false, message: 'The primary system Administrator account cannot be deleted.' };
     }
 

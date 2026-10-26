@@ -105,6 +105,10 @@ export const StaffControlScreen: React.FC<StaffControlScreenProps> = ({
     document.body.removeChild(link);
   };
 
+  const currentAdminUser = staffList.find(
+    (s) => s.username === currentAdminUsername || s.role === 'Admin'
+  );
+
   return (
     <div className="space-y-6">
       {/* Topbar */}
@@ -117,11 +121,22 @@ export const StaffControlScreen: React.FC<StaffControlScreenProps> = ({
             </span>
           </div>
           <p className="text-xs text-[#9A9E9F] mt-1">
-            Manage staff credentials, duty shifts, and operational system permissions
+            Manage staff credentials, change usernames, configure shifts, and set operational permissions
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {currentAdminUser && (
+            <button
+              onClick={() => handleOpenEdit(currentAdminUser)}
+              className="px-3.5 py-2 bg-[#C9FF3D]/15 hover:bg-[#C9FF3D]/25 text-[#C9FF3D] border border-[#C9FF3D]/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Change Administrator Username"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>Change My Username (@{currentAdminUser.username})</span>
+            </button>
+          )}
+
           <button
             onClick={exportStaffCsv}
             className="px-3 py-2 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] border border-[#2C3034] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -151,6 +166,39 @@ export const StaffControlScreen: React.FC<StaffControlScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Admin Username Management Quick Banner */}
+      {currentAdminUser && (
+        <div className="bg-[#1A1D21] border border-[#2C3034] hover:border-[#C9FF3D]/30 transition-colors rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#C9FF3D]/20 text-[#C9FF3D] border border-[#C9FF3D]/40 flex items-center justify-center font-bold">
+              <Shield className="w-4 h-4 text-[#C9FF3D]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#EDEEEA]">{currentAdminUser.full_name}</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#C9FF3D]/15 text-[#C9FF3D] border border-[#C9FF3D]/30 uppercase font-semibold">
+                  Primary Admin
+                </span>
+              </div>
+              <div className="text-[11px] text-[#9A9E9F] mt-0.5 flex items-center gap-1.5">
+                <span>Active Handle:</span>
+                <span className="text-[#C9FF3D] font-mono font-bold bg-[#101214] px-1.5 py-0.5 rounded border border-[#2C3034]">
+                  @{currentAdminUser.username}
+                </span>
+                <span className="text-[#5D6164]">• Click "Change Username" to modify</span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => handleOpenEdit(currentAdminUser)}
+            className="px-3 py-1.5 bg-[#212528] hover:bg-[#2C3034] text-[#EDEEEA] hover:text-[#C9FF3D] border border-[#2C3034] hover:border-[#C9FF3D]/40 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Edit2 className="w-3.5 h-3.5 text-[#C9FF3D]" />
+            <span>Edit Admin Username & Profile</span>
+          </button>
+        </div>
+      )}
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -64,11 +64,14 @@ export const MemberModal: React.FC<MemberModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberId.trim() || !fullName.trim() || !joinDate || !expiryDate) {
+    const today = new Date().toISOString().split('T')[0];
+    const finalJoinDate = editingMember ? joinDate : today;
+
+    if (!memberId.trim() || !fullName.trim() || !finalJoinDate || !expiryDate) {
       setError('Please fill in all required fields.');
       return;
     }
-    if (new Date(expiryDate) < new Date(joinDate)) {
+    if (new Date(expiryDate) < new Date(finalJoinDate)) {
       setError('Expiry date cannot be earlier than join date.');
       return;
     }
@@ -81,7 +84,7 @@ export const MemberModal: React.FC<MemberModalProps> = ({
           full_name: fullName.trim(),
           plan_type: planType,
           trainer_id: trainerId,
-          join_date: joinDate,
+          join_date: finalJoinDate,
           expiry_date: expiryDate,
           status,
         },
@@ -195,16 +198,35 @@ export const MemberModal: React.FC<MemberModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#9A9E9F] mb-1">
-                Join Date *
-              </label>
-              <input
-                type="date"
-                value={joinDate}
-                onChange={(e) => setJoinDate(e.target.value)}
-                className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] focus:outline-none focus:border-[#C9FF3D]"
-                required
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#9A9E9F]">
+                  Join Date
+                </label>
+                {!editingMember && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-[#C9FF3D]/15 text-[#C9FF3D] border border-[#C9FF3D]/30 uppercase font-mono">
+                    Current Date (Today)
+                  </span>
+                )}
+              </div>
+              {!editingMember ? (
+                <div className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] font-mono flex items-center justify-between select-none">
+                  <span>{joinDate}</span>
+                  <span className="text-[11px] text-[#8FB82A] font-sans font-medium">Automatic</span>
+                </div>
+              ) : (
+                <input
+                  type="date"
+                  value={joinDate}
+                  onChange={(e) => setJoinDate(e.target.value)}
+                  className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] focus:outline-none focus:border-[#C9FF3D]"
+                  required
+                />
+              )}
+              {!editingMember && (
+                <p className="text-[10px] text-[#5D6164] mt-1">
+                  New memberships automatically start on current date
+                </p>
+              )}
             </div>
             <div>
               <div className="flex justify-between items-center mb-1">

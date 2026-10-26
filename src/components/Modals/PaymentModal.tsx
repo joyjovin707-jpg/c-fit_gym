@@ -164,11 +164,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         ? `${selectedMember.plan_type} — ${cycleDescriptions[billingCycle]}`
         : 'Membership fee';
 
+      const today = new Date().toISOString().split('T')[0];
       await onSave({
         member_id: memberId,
         plan_description: planDesc,
         amount: parsedAmount,
-        due_date: dueDate,
+        due_date: today,
         payment_status: paymentStatus,
       });
       onClose();
@@ -332,16 +333,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#9A9E9F] mb-1">
-                Due / Paid Date *
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] focus:outline-none focus:border-[#C9FF3D] transition-colors"
-                required
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#9A9E9F]">
+                  Payment Date
+                </label>
+                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-[#C9FF3D]/15 text-[#C9FF3D] border border-[#C9FF3D]/30 uppercase font-mono">
+                  Current Date (Today)
+                </span>
+              </div>
+              <div className="w-full bg-[#212528] border border-[#2C3034] rounded-lg px-3 py-2 text-sm text-[#EDEEEA] font-mono flex items-center justify-between select-none">
+                <span>{dueDate}</span>
+                <span className="text-[11px] text-[#8FB82A] font-sans font-medium">Automatic</span>
+              </div>
+              <p className="text-[10px] text-[#5D6164] mt-1">
+                Payments are strictly recorded on today's date
+              </p>
             </div>
           </div>
 

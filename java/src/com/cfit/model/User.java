@@ -29,6 +29,12 @@ public class User {
     // Encapsulated getters & setters
     public int getId() { return id; }
     public String getUsername() { return username; }
+    public void setUsername(String username) {
+        if (username == null || username.trim().length() < 3) {
+            throw new IllegalArgumentException("Username must be at least 3 characters.");
+        }
+        this.username = username.trim().toLowerCase();
+    }
     public String getFullName() { return fullName; }
     public String getEmail() { return email; }
     public String getRole() { return role; }

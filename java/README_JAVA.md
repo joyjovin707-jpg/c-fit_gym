@@ -43,10 +43,17 @@ java/
 ├── src/
 │   └── com/cfit/
 │       ├── Main.java                        # Interactive Console Application
+│       ├── jdbc/                            # Dedicated JDBC & Database Connections Package
+│       │   ├── DBConnection.java            # JDBC Connection Coordinator (MySQL & SQLite fallback)
+│       │   ├── JDBCConfig.java              # JDBC Configuration Manager (Host, Port, DB, Creds)
+│       │   ├── ConnectionFactory.java       # Factory Pattern for Live JDBC Connections
+│       │   ├── DatabaseInitializer.java     # JDBC DDL Auto-Bootstrapper (Tables & Constraints)
+│       │   ├── JDBCHelper.java              # Safe Resource Cleanup & Transaction Utility
+│       │   └── db.properties                # Database Connection Configuration
 │       ├── gui/
 │       │   └── GymDesktopApp.java           # Java Swing Modern Dark Desktop GUI
 │       ├── server/
-│       │   └── GymHttpServer.java           # Built-in Java REST HTTP Server (port 8080)
+│       │   └── GymHttpServer.java           # Built-in Java REST HTTP Server (port 8080/8085)
 │       ├── model/
 │       │   ├── User.java                    # Base User (Inheritance)
 │       │   ├── StaffUser.java               # Subclass (Inheritance & RBAC)
@@ -63,6 +70,9 @@ java/
 │       └── service/
 │           ├── GymOperations.java           # Business Logic Interface (Abstraction)
 │           └── GymServiceImpl.java          # Singleton Implementation Service
+├── resources/
+│   ├── db.properties                        # Centralized JDBC credentials
+│   └── application.yml                      # Spring/Standalone DB specifications
 └── bin/                                     # Compiled .class Bytecode files
 ```
 
